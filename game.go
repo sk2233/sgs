@@ -22,7 +22,9 @@ func (g *Game) Update() error {
 
 // 每帧绘制的画面
 func (g *Game) Draw(screen *ebiten.Image) {
-
+	FillRect(screen, 100, 100, 100, 100, ClrFF00FF55)
+	StoryRect(screen, 200, 200, 100, 100, 2, ClrFFFFFF)
+	DrawText(screen, "你好，世界", 300, 300, AnchorMidCenter, Font18, ClrFFFFFF)
 }
 
 // 设置画布的大小，入参窗口大小，返回画布大小
