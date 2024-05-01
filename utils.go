@@ -69,7 +69,7 @@ func NewFont(size float64) font.Face {
 func DrawText(screen *ebiten.Image, str string, x, y float32, anchor Anchor, face font.Face, clr color.Color) {
 	bound := text.BoundString(face, str)
 	// 根据测量的结果，先把整体左上角移动到 x,y 处，再根据锚点与测量的宽高进行偏移
-	x = x - float32(bound.Min.X) + float32(bound.Dx())*real(anchor)
-	y = y - float32(bound.Min.Y) + float32(bound.Dy())*imag(anchor)
+	x = x - float32(bound.Min.X) - float32(bound.Dx())*real(anchor)
+	y = y - float32(bound.Min.Y) - float32(bound.Dy())*imag(anchor)
 	text.Draw(screen, str, face, int(x), int(y), clr)
 }
