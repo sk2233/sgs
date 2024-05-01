@@ -9,10 +9,13 @@ import (
 )
 
 type Game struct {
+	Players []*Player
 }
 
 func NewGame() *Game {
-	return &Game{}
+	return &Game{
+		Players: LoadPlayer(),
+	}
 }
 
 // 每帧执行的逻辑，error我没用过
@@ -22,9 +25,9 @@ func (g *Game) Update() error {
 
 // 每帧绘制的画面
 func (g *Game) Draw(screen *ebiten.Image) {
-	FillRect(screen, 100, 100, 100, 100, ClrFF00FF55)
-	StoryRect(screen, 200, 200, 100, 100, 2, ClrFFFFFF)
-	DrawText(screen, "你好，世界", 300, 300, AnchorMidCenter, Font18, ClrFFFFFF)
+	for _, player := range g.Players {
+		player.Draw(screen)
+	}
 }
 
 // 设置画布的大小，入参窗口大小，返回画布大小

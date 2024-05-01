@@ -7,8 +7,11 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"math/rand"
 	"os"
+	"sort"
 	"strconv"
+	"strings"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
@@ -22,6 +25,12 @@ func HandleErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func RandSlice(arr any) {
+	sort.Slice(arr, func(_, _ int) bool {
+		return rand.Intn(2) == 0
+	})
 }
 
 //=====================绘图========================
@@ -73,4 +82,40 @@ func DrawText(screen *ebiten.Image, str string, x, y float32, anchor Anchor, fac
 	x = x - float32(bound.Min.X) - float32(bound.Dx())*real(anchor)
 	y = y - float32(bound.Min.Y) - float32(bound.Dy())*imag(anchor)
 	text.Draw(screen, str, face, int(x), int(y), clr)
+}
+
+func FillCircle(screen *ebiten.Image, x, y, r float32, clr color.Color) {
+	vector.DrawFilledCircle(screen, x, y, r, clr, false)
+}
+
+func StrokeCircle(screen *ebiten.Image, x, y, r, sw float32, clr color.Color) {
+	vector.StrokeCircle(screen, x, y, r, sw, clr, false)
+}
+
+func GetHpClr(hp, maxHp int) color.Color {
+	if hp > (maxHp+1)/2 { // 大于一半 绿色
+		return ClrAAD745
+	} else if hp > (maxHp+1)/4 { // 大于1/4 黄色
+		return ClrFEF660
+	} else { // 否则红色
+		return ClrD84B3C
+	}
+}
+
+//===================文本=======================
+
+func VerticalText(val string) string {
+	buff := strings.Builder{}
+	items := []rune(val)
+	for i := 0; i < len(items); i++ {
+		if i > 0 {
+			buff.WriteByte('\n')
+		}
+		buff.WriteRune(items[i])
+	}
+	return buff.String()
+}
+
+func Int2Str(val int) string {
+	return strconv.FormatInt(int64(val), 10)
 }
