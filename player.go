@@ -31,16 +31,17 @@ func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
 		maxHp++
 	}
 	return &Player{
-		X:        x,
-		Y:        y,
-		IsBot:    isBot,
-		Hp:       hp,
-		MaxHp:    maxHp,
-		General:  general,
-		Role:     role,
-		MarkRole: markRole,
-		Force:    general.Force,
-		Cards:    make([]*Card, 0),
+		X:           x,
+		Y:           y,
+		IsBot:       isBot,
+		Hp:          hp,
+		MaxHp:       maxHp,
+		General:     general,
+		Role:        role,
+		MarkRole:    markRole,
+		Force:       general.Force,
+		Cards:       make([]*Card, 0),
+		SkillHolder: NewSkillHolder(),
 	}
 }
 
@@ -102,7 +103,8 @@ func (p *Player) drawHp(screen *ebiten.Image, x float32, y float32) {
 }
 
 func (p *Player) DrawCard(num int) {
-
+	cards := MainGame.DrawCard(num)
+	p.Cards = append(p.Cards, cards...)
 }
 
 func (p *Player) GetEquipSkillHolders() []*SkillHolder {

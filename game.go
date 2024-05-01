@@ -15,6 +15,7 @@ type Game struct {
 	Index       int
 	ActionStack *Stack[IAction]
 	SkillHolder *SkillHolder
+	CardManager *CardManager
 }
 
 func NewGame() *Game {
@@ -25,6 +26,7 @@ func NewGame() *Game {
 		Players:     players,
 		ActionStack: stack,
 		SkillHolder: NewSkillHolder(NewSysInitCardSkill(), NewSysGameStartSkill()),
+		CardManager: NewCardManager(),
 	}
 	return MainGame
 }
@@ -93,4 +95,8 @@ func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
 
 func (g *Game) NextPlayer() {
 
+}
+
+func (g *Game) DrawCard(num int) []*Card {
+	return g.CardManager.DrawCard(num)
 }

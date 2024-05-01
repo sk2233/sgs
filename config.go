@@ -20,3 +20,12 @@ func LoadPlayer() []*Player {
 	}
 	return res
 }
+
+func LoadCard() []*Card {
+	res := make([]*Card, 0)
+	for i := 0; i < 108; i++ {
+		res = append(res, &Card{})
+	}
+	RandSlice(res)
+	return res
+}

@@ -20,6 +20,7 @@ func NewEffect(steps ...IStep) *Effect {
 func (e *Effect) Update(event *Event) bool { // 执行效果并返回是否结束
 	if e.Index < len(e.Steps) {
 		e.Steps[e.Index].Update(e, event) // Index 是由Step内部控制的，可能向前调整，也可能向后调整
+		return false
 	}
 	return true
 }
