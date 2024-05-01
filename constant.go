@@ -33,6 +33,10 @@ const (
 	WinHeight = 720
 )
 
+const (
+	MaxIndex = 9999
+)
+
 type Role string // 身份
 
 const (
@@ -46,8 +50,28 @@ const (
 type Force string
 
 const (
-	ForceWei = "魏"
-	ForceShu = "蜀"
-	ForceWu  = "吴"
-	ForceQun = "群"
+	ForceWei Force = "魏"
+	ForceShu Force = "蜀"
+	ForceWu  Force = "吴"
+	ForceQun Force = "群"
+)
+
+type EventType int
+
+const (
+	EventGameStart EventType = iota + 1 // 游戏开始事件，有些武将技能在这里发动
+)
+
+type ConditionType int
+
+const (
+	ConditionInitCard ConditionType = iota + 1
+)
+
+type SkillTag int
+
+const (
+	TagLock   SkillTag = 1 << iota // 锁定技
+	TagActive                      // 可以出牌阶段主动发动的
+	TagNone   SkillTag = 0
 )

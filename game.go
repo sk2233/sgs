@@ -8,18 +8,32 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+var MainGame *Game
+
 type Game struct {
-	Players []*Player
+	Players     []*Player
+	Index       int
+	ActionStack *Stack[IAction]
+	SkillHolder *SkillHolder
 }
 
 func NewGame() *Game {
-	return &Game{
-		Players: LoadPlayer(),
+	players := LoadPlayer()
+	stack := NewStack[IAction]()
+	stack.Push(NewGamePrepareAction(players))
+	MainGame = &Game{
+		Players:     players,
+		ActionStack: stack,
+		SkillHolder: NewSkillHolder(NewSysInitCardSkill(), NewSysGameStartSkill()),
 	}
+	return MainGame
 }
 
 // 每帧执行的逻辑，error我没用过
 func (g *Game) Update() error {
+	if g.ActionStack.Peek().Update() { // 栈中不能为空
+		g.ActionStack.Pop()
+	}
 	return nil
 }
 
@@ -33,4 +47,50 @@ func (g *Game) Draw(screen *ebiten.Image) {
 // 设置画布的大小，入参窗口大小，返回画布大小
 func (g *Game) Layout(w, h int) (int, int) {
 	return w, h
+}
+
+func (g *Game) ComputeCondition(condition *Condition) *Condition {
+	holders := g.GetAllSortSkillHolder(condition.Src)
+	for _, holder := range holders {
+		if holder.HandleCondition(condition) {
+			break
+		}
+	}
+	return condition
+}
+
+func (g *Game) TriggerEvent(event *Event) {
+	holders := g.GetAllSortSkillHolder(event.Src)
+	effects := make([]*Effect, 0)
+	for _, holder := range holders {
+		effects = append(effects, holder.CreateEffects(event)...)
+	}
+	if len(effects) > 0 { // 存在要被触发的事件进行触发
+		g.ActionStack.Push(NewEffectGroup(event, effects))
+	}
+}
+
+func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
+	players := g.Players
+	if src != nil { // 若是存在事件源玩家，就已他为起点逆时针结算
+		for i := 0; i < len(players); i++ {
+			if players[i] == src {
+				players = append(players[i:], players[:i]...)
+				break
+			}
+		}
+	}
+	res := make([]*SkillHolder, 0)
+	for _, player := range players { // 玩家技能最大
+		res = append(res, player.SkillHolder)
+	}
+	for _, player := range players { // 装备技能次之
+		res = append(res, player.GetEquipSkillHolders()...)
+	}
+	res = append(res, g.SkillHolder) // 系统规则最小
+	return res
+}
+
+func (g *Game) NextPlayer() {
+
 }

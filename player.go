@@ -11,13 +11,14 @@ import (
 )
 
 type Player struct {
-	X, Y           float32  // 位置的左上角
-	IsBot          bool     // 是否为机器人
-	Hp, MaxHp      int      // 体力 体力上限
-	General        *General // 武将信息 主要包含一些元数据信息，需要变化的信息都会扩展到外面
-	Role, MarkRole Role     // 真实身份 表面标记身份
-	Force          Force    // 势力
-	Cards          []*Card  // 手牌
+	X, Y           float32      // 位置的左上角
+	IsBot          bool         // 是否为机器人
+	Hp, MaxHp      int          // 体力 体力上限
+	General        *General     // 武将信息 主要包含一些元数据信息，需要变化的信息都会扩展到外面
+	Role, MarkRole Role         // 真实身份 表面标记身份
+	Force          Force        // 势力
+	Cards          []*Card      // 手牌
+	SkillHolder    *SkillHolder // 技能
 }
 
 func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
@@ -98,4 +99,12 @@ func (p *Player) drawHp(screen *ebiten.Image, x float32, y float32) {
 			StrokeCircle(screen, x, y+11+22*float32(i), 10, 2, ClrFFFFFF)
 		}
 	}
+}
+
+func (p *Player) DrawCard(num int) {
+
+}
+
+func (p *Player) GetEquipSkillHolders() []*SkillHolder {
+	return make([]*SkillHolder, 0)
 }
