@@ -33,9 +33,7 @@ func NewGame() *Game {
 
 // 每帧执行的逻辑，error我没用过
 func (g *Game) Update() error {
-	if g.ActionStack.Peek().Update() { // 栈中不能为空
-		g.ActionStack.Pop()
-	}
+	g.ActionStack.Peek().Update() // 栈中不能为空，采用对象手动弹栈方式
 	return nil
 }
 
@@ -94,7 +92,13 @@ func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
 }
 
 func (g *Game) NextPlayer() {
+	player := g.Players[g.Index]
+	g.Index = (g.Index + 1) % len(g.Players)
+	g.ActionStack.Push(NewPlayerStageAction(player))
+}
 
+func (g *Game) PopAction() {
+	g.ActionStack.Pop()
 }
 
 func (g *Game) DrawCard(num int) []*Card {

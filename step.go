@@ -4,8 +4,16 @@
 */
 package main
 
+type StepExtra struct {
+	Index int // 步骤进行到那里了
+}
+
+func NewStepExtra() *StepExtra {
+	return &StepExtra{Index: 0}
+}
+
 type IStep interface {
-	Update(effect *Effect, event *Event) // 执行效果并返回是否执行结束
+	Update(event *Event, extra *StepExtra) // 执行效果并返回是否执行结束
 }
 
 //==================SysGameStartStep==================
@@ -17,7 +25,7 @@ func NewSysNextPlayerStep() *SysNextPlayerStep {
 	return &SysNextPlayerStep{}
 }
 
-func (s *SysNextPlayerStep) Update(effect *Effect, event *Event) {
-	//effect.Index = MaxIndex
-	//MainGame.NextPlayer()
+func (s *SysNextPlayerStep) Update(event *Event, extra *StepExtra) {
+	extra.Index = MaxIndex // 结束效果
+	MainGame.NextPlayer()  // 轮到下一个玩家了
 }

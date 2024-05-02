@@ -75,3 +75,15 @@ const (
 	TagActive                      // 可以出牌阶段主动发动的
 	TagNone   SkillTag = 0
 )
+
+type StageType int
+
+const (
+	StagePrepare StageType = 1 << iota
+	StageJudge
+	StageDraw
+	StagePlay
+	StageDiscard
+	StageEnd
+	StageNone StageType = 0
+)
