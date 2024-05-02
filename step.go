@@ -26,6 +26,36 @@ func NewSysNextPlayerStep() *SysNextPlayerStep {
 }
 
 func (s *SysNextPlayerStep) Update(event *Event, extra *StepExtra) {
-	extra.Index = MaxIndex // 结束效果
 	MainGame.NextPlayer()  // 轮到下一个玩家了
+	extra.Index = MaxIndex // 结束效果
+}
+
+//===================TriggerEventStep简单触发一下事件=====================
+
+type TriggerEventStep struct {
+	EventType EventType
+}
+
+func NewTriggerEventStep(eventType EventType) *TriggerEventStep {
+	return &TriggerEventStep{EventType: eventType}
+}
+
+func (t *TriggerEventStep) Update(event *Event, extra *StepExtra) {
+	// 简单触发一下事件就继续向下走
+	MainGame.TriggerEvent(&Event{Type: t.EventType, Src: event.Src}) // TODO 参数后续可能需要继续补充
+	extra.Index++
+}
+
+//=====================DrawStageMainStep摸牌阶段的主要步骤========================
+
+type DrawStageMainStep struct {
+}
+
+func NewDrawStageMainStep() *DrawStageMainStep {
+	return &DrawStageMainStep{}
+}
+
+func (d *DrawStageMainStep) Update(event *Event, extra *StepExtra) {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionDrawStageCard, Src: event.Src})
+	event.Src.DrawCard(condition.CardNum)
 }

@@ -4,8 +4,6 @@
 */
 package main
 
-import "fmt"
-
 type StageExtra struct {
 	SkipStage StageType
 }
@@ -19,9 +17,35 @@ type IStage interface {
 	GetStage() StageType
 }
 
+type BaseStage struct {
+	Steps []IStep    // 一个阶段有多个步骤组成
+	Extra *StepExtra // 多个步骤存储的中间变量
+}
+
+func NewBaseStage(steps ...IStep) *BaseStage {
+	return &BaseStage{Steps: steps, Extra: NewStepExtra()}
+}
+
+func (b *BaseStage) Update(player *Player, extra *StageExtra) bool {
+	if b.Extra.Index < len(b.Steps) {
+		b.Steps[b.Extra.Index].Update(&Event{ // 大部分到Step层就不再区分事件了
+			Type:  EventPlayerStage, // 这里为了调用Step必须使用Event不太好 TODO
+			Src:   player,
+			Extra: extra,
+		}, b.Extra)
+		return false
+	}
+	return true
+}
+
+func (b *BaseStage) GetStage() StageType {
+	return StageNone
+}
+
 //===================PrepareStage准备阶段=====================
 
 type PrepareStage struct {
+	*BaseStage
 }
 
 func (p *PrepareStage) GetStage() StageType {
@@ -29,20 +53,13 @@ func (p *PrepareStage) GetStage() StageType {
 }
 
 func NewPrepareStage() *PrepareStage {
-	return &PrepareStage{}
-}
-
-func (p *PrepareStage) Update(player *Player, extra *StageExtra) bool {
-	// 翻面也作为一种技能效果
-	fmt.Println(player.General.Name + " PrepareStage")
-	return true
+	return &PrepareStage{BaseStage: NewBaseStage(NewTriggerEventStep(EventStagePrepare))}
 }
 
 //=====================JudgeStage判定阶段=====================
 
 type JudgeStage struct {
-	Steps []IStep    // 一个阶段有多个步骤组成
-	Extra *StepExtra // 多个步骤存储的中间变量
+	*BaseStage
 }
 
 func (j *JudgeStage) GetStage() StageType {
@@ -50,18 +67,13 @@ func (j *JudgeStage) GetStage() StageType {
 }
 
 func NewJudgeStage() *JudgeStage {
-	return &JudgeStage{}
-}
-
-func (j *JudgeStage) Update(player *Player, extra *StageExtra) bool {
-	// 也需要一步步来，但不不能复用Step
-	fmt.Println(player.General.Name + " JudgeStage")
-	return true
+	return &JudgeStage{BaseStage: NewBaseStage()}
 }
 
 //===================DrawStage摸牌阶段====================
 
 type DrawStage struct {
+	*BaseStage
 }
 
 func (d *DrawStage) GetStage() StageType {
@@ -69,17 +81,13 @@ func (d *DrawStage) GetStage() StageType {
 }
 
 func NewDrawStage() *DrawStage {
-	return &DrawStage{}
-}
-
-func (d *DrawStage) Update(player *Player, extra *StageExtra) bool {
-	fmt.Println(player.General.Name + " DrawStage")
-	return true
+	return &DrawStage{BaseStage: NewBaseStage(NewDrawStageMainStep())}
 }
 
 //====================PlayStage出牌阶段======================
 
 type PlayStage struct {
+	*BaseStage
 }
 
 func (p *PlayStage) GetStage() StageType {
@@ -87,17 +95,13 @@ func (p *PlayStage) GetStage() StageType {
 }
 
 func NewPlayStage() *PlayStage {
-	return &PlayStage{}
-}
-
-func (p *PlayStage) Update(player *Player, extra *StageExtra) bool {
-	fmt.Println(player.General.Name + " PlayStage")
-	return true
+	return &PlayStage{BaseStage: NewBaseStage()}
 }
 
 //====================DiscardStage弃牌阶段======================
 
 type DiscardStage struct {
+	*BaseStage
 }
 
 func (d *DiscardStage) GetStage() StageType {
@@ -105,17 +109,13 @@ func (d *DiscardStage) GetStage() StageType {
 }
 
 func NewDiscardStage() *DiscardStage {
-	return &DiscardStage{}
-}
-
-func (d *DiscardStage) Update(player *Player, extra *StageExtra) bool {
-	fmt.Println(player.General.Name + " DiscardStage")
-	return true
+	return &DiscardStage{BaseStage: NewBaseStage()}
 }
 
 //====================EndStage回合结束阶段========================
 
 type EndStage struct {
+	*BaseStage
 }
 
 func (e *EndStage) GetStage() StageType {
@@ -123,10 +123,5 @@ func (e *EndStage) GetStage() StageType {
 }
 
 func NewEndStage() *EndStage {
-	return &EndStage{}
-}
-
-func (e *EndStage) Update(player *Player, extra *StageExtra) bool {
-	fmt.Println(player.General.Name + " EndStage")
-	return true
+	return &EndStage{BaseStage: NewBaseStage(NewTriggerEventStep(EventStageEnd))}
 }

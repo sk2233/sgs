@@ -74,6 +74,9 @@ func NewSysInitCardSkill() *SysInitCardSkill {
 }
 
 func (s *SysInitCardSkill) HandleCondition(condition *Condition) bool {
+	if condition.Type != ConditionInitCard {
+		return false
+	}
 	condition.CardNum = 4 // 默认初始 4 张手牌
 	return true
 }

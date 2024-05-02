@@ -59,13 +59,17 @@ const (
 type EventType int
 
 const (
-	EventGameStart EventType = iota + 1 // 游戏开始事件，有些武将技能在这里发动
+	EventPlayerStage  EventType = iota + 1
+	EventGameStart              // 游戏开始事件，有些武将技能在这里发动
+	EventStagePrepare           // 准备阶段事件
+	EventStageEnd               // 回合结束阶段事件
 )
 
 type ConditionType int
 
 const (
-	ConditionInitCard ConditionType = iota + 1
+	ConditionInitCard      ConditionType = iota + 1 // 初始手牌数量
+	ConditionDrawStageCard                          // 摸牌阶段摸牌数量
 )
 
 type SkillTag int

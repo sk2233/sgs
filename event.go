@@ -8,7 +8,8 @@ type Event struct {
 	Type  EventType
 	Abort bool
 	// 泛用参数
-	Src *Player // 来源最多是一个玩家
+	Src   *Player // 来源最多是一个玩家
+	Extra *StageExtra
 }
 
 type Condition struct {
