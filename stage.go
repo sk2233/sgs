@@ -29,9 +29,9 @@ func NewBaseStage(steps ...IStep) *BaseStage {
 func (b *BaseStage) Update(player *Player, extra *StageExtra) bool {
 	if b.Extra.Index < len(b.Steps) {
 		b.Steps[b.Extra.Index].Update(&Event{ // 大部分到Step层就不再区分事件了
-			Type:  EventPlayerStage, // 这里为了调用Step必须使用Event不太好 TODO
-			Src:   player,
-			Extra: extra,
+			Type:       EventPlayerStage, // 这里为了调用Step必须使用Event不太好 TODO
+			Src:        player,
+			StageExtra: extra,
 		}, b.Extra)
 		return false
 	}
@@ -67,7 +67,7 @@ func (j *JudgeStage) GetStage() StageType {
 }
 
 func NewJudgeStage() *JudgeStage {
-	return &JudgeStage{BaseStage: NewBaseStage()}
+	return &JudgeStage{BaseStage: NewBaseStage(NewJudgeStageCheckStep(), NewJudgeCardJudgeStep(), NewJudgeCardEndStep(), NewJudgeStageExecuteStep())}
 }
 
 //===================DrawStage摸牌阶段====================

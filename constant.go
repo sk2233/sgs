@@ -4,13 +4,17 @@
 */
 package main
 
+import "fmt"
+
 var (
 	Clr65401E = Hex2Clr("65401E")
 	Clr553010 = Hex2Clr("553010")
 	ClrFFFFFF = Hex2Clr("FFFFFF")
+	ClrFF0000 = Hex2Clr("FF0000")
 	Clr000000 = Hex2Clr("000000")
 	Clr0D0D0D = Hex2Clr("0D0D0D")
 	Clr362618 = Hex2Clr("362618")
+	ClrDECDBA = Hex2Clr("DECDBA")
 	ClrD84B3C = Hex2Clr("D84B3C") // hp 红
 	ClrFEF660 = Hex2Clr("FEF660") // hp 黄
 	ClrAAD745 = Hex2Clr("AAD745") // hp 绿
@@ -18,6 +22,7 @@ var (
 
 var (
 	Font18 = NewFont(18)
+	Font16 = NewFont(16)
 )
 
 type Anchor complex64 // 复数类型，非常适合当做向量，简单起见这里不会用到向量 这里把实数当x锚点，虚数当y锚点
@@ -26,6 +31,7 @@ const (
 	AnchorMidCenter Anchor = 0.5 + 0.5i
 	AnchorTopLeft   Anchor = 0 + 0i
 	AnchorTopCenter Anchor = 0.5 + 0i
+	AnchorBtmCenter Anchor = 0.5 + 1i
 )
 
 const (
@@ -56,20 +62,23 @@ const (
 	ForceQun Force = "群"
 )
 
-type EventType int
+type EventType string
 
 const (
-	EventPlayerStage  EventType = iota + 1
-	EventGameStart              // 游戏开始事件，有些武将技能在这里发动
-	EventStagePrepare           // 准备阶段事件
-	EventStageEnd               // 回合结束阶段事件
+	EventPlayerStage  EventType = "EventPlayerStage"
+	EventGameStart    EventType = "EventGameStart"    // 游戏开始事件，有些武将技能在这里发动
+	EventStagePrepare EventType = "EventStagePrepare" // 准备阶段事件
+	EventStageEnd     EventType = "EventStageEnd"     // 回合结束阶段事件
+	EventJudgeCard    EventType = "EventJudgeCard"    // 判定事件发生后已经拿到判定牌了，但是还没有生效
+	EventJudgeEnd     EventType = "EventJudgeEnd"     // 判定牌生效后
+	EventCardSkill    EventType = "EventCardSkill"    // 调用卡牌效果，并不算事件
 )
 
-type ConditionType int
+type ConditionType string
 
 const (
-	ConditionInitCard      ConditionType = iota + 1 // 初始手牌数量
-	ConditionDrawStageCard                          // 摸牌阶段摸牌数量
+	ConditionInitCard      ConditionType = "ConditionInitCard"      // 初始手牌数量
+	ConditionDrawStageCard ConditionType = "ConditionDrawStageCard" // 摸牌阶段摸牌数量
 )
 
 type SkillTag int
@@ -90,4 +99,117 @@ const (
 	StageDiscard
 	StageEnd
 	StageNone StageType = 0
+)
+
+type CardPoint int
+
+func (c CardPoint) String() string {
+	switch c {
+	case PointNone:
+		return " "
+	case PointA:
+		return "A"
+	case Point2:
+		return "2"
+	case Point3:
+		return "3"
+	case Point4:
+		return "4"
+	case Point5:
+		return "5"
+	case Point6:
+		return "6"
+	case Point7:
+		return "7"
+	case Point8:
+		return "8"
+	case Point9:
+		return "9"
+	case Point10:
+		return "10"
+	case PointJ:
+		return "J"
+	case PointQ:
+		return "Q"
+	case PointK:
+		return "K"
+	default:
+		panic(fmt.Sprintf("invalid point %d", c))
+	}
+}
+
+const (
+	PointNone CardPoint = iota // 没有点数
+	PointA
+	Point2
+	Point3
+	Point4
+	Point5
+	Point6
+	Point7
+	Point8
+	Point9
+	Point10
+	PointJ
+	PointQ
+	PointK
+)
+
+type CardSuit int
+
+func (c CardSuit) String() string {
+	switch c {
+	case SuitNone:
+		return " "
+	case SuitHeart:
+		return "红"
+	case SuitSpade:
+		return "黑"
+	case SuitClub:
+		return "方"
+	case SuitDiamond:
+		return "梅"
+	default:
+		panic(fmt.Sprintf("invalid suit %d", c))
+	}
+}
+
+const (
+	SuitNone CardSuit = iota // 没有花色
+	SuitHeart
+	SuitSpade
+	SuitClub
+	SuitDiamond
+)
+
+type CardType string
+
+const (
+	CardBasic CardType = "基本"
+	CardEquip CardType = "装备"
+	CardKit   CardType = "锦囊"
+)
+
+type EquipType string
+
+const (
+	EquipWeapon  EquipType = "武器"
+	EquipArmor   EquipType = "防具"
+	EquipAttack  EquipType = "-1马"
+	EquipDefense EquipType = "+1马"
+)
+
+type KitType string
+
+const (
+	KitInstant KitType = "即时"
+	KitDelay   KitType = "延时"
+)
+
+type WrapType string
+
+const (
+	WrapSimple  WrapType = ""
+	WrapTrans   WrapType = "转换"
+	WrapVirtual WrapType = "虚拟"
 )

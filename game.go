@@ -66,7 +66,7 @@ func (g *Game) TriggerEvent(event *Event) {
 		effects = append(effects, holder.CreateEffects(event)...)
 	}
 	if len(effects) > 0 { // 存在要被触发的事件进行触发
-		g.ActionStack.Push(NewEffectGroup(event, effects))
+		g.PushAction(NewEffectGroup(event, effects))
 	}
 }
 
@@ -94,7 +94,11 @@ func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
 func (g *Game) NextPlayer() {
 	player := g.Players[g.Index]
 	g.Index = (g.Index + 1) % len(g.Players)
-	g.ActionStack.Push(NewPlayerStageAction(player))
+	g.PushAction(NewPlayerStageAction(player))
+}
+
+func (g *Game) PushAction(action IAction) {
+	g.ActionStack.Push(action)
 }
 
 func (g *Game) PopAction() {
@@ -103,4 +107,8 @@ func (g *Game) PopAction() {
 
 func (g *Game) DrawCard(num int) []*Card {
 	return g.CardManager.DrawCard(num)
+}
+
+func (g *Game) DiscardCard(cards []*Card) {
+	g.CardManager.DiscardCard(cards)
 }

@@ -92,6 +92,28 @@ func StrokeCircle(screen *ebiten.Image, x, y, r, sw float32, clr color.Color) {
 	vector.StrokeCircle(screen, x, y, r, sw, clr, false)
 }
 
+// 卡牌：宽 110 高 160
+func DrawCard(screen *ebiten.Image, x, y float32, card *Card) {
+	FillRect(screen, x, y, 110, 160, ClrDECDBA)
+	StoryRect(screen, x, y, 110, 160, 2, Clr000000)
+	pointAndSuit := fmt.Sprintf("%s\n%s", card.Suit, card.Point)
+	suitClr := GetSuitClr(card.Suit)
+	DrawText(screen, pointAndSuit, x+10, y+10, AnchorTopLeft, Font18, suitClr)
+	DrawText(screen, card.Name, x+55, y+80, AnchorMidCenter, Font16, Clr000000)
+	if card.Type == CardKit {
+		DrawText(screen, string(card.KitType), x+55, y+160-10, AnchorBtmCenter, Font16, Clr000000)
+	} else if card.Type == CardEquip {
+		DrawText(screen, string(card.EquipType), x+55, y+160-10, AnchorBtmCenter, Font16, Clr000000)
+	}
+}
+
+func GetSuitClr(suit CardSuit) color.Color {
+	if suit == SuitHeart || suit == SuitDiamond {
+		return ClrFF0000
+	}
+	return Clr000000
+}
+
 func GetHpClr(hp, maxHp int) color.Color {
 	if hp > (maxHp+1)/2 { // 大于一半 绿色
 		return ClrAAD745

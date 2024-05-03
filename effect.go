@@ -44,3 +44,8 @@ func (e *EffectGroup) Update() { // 执行效果组并返回是否执行结束
 		MainGame.PopAction()
 	}
 }
+
+func NewEffectGroupBySkill(event *Event, skill ISkill) *EffectGroup {
+	effect := skill.CreateEffect(event) // 指定skill时这里不能返回nil，他必须可以处理
+	return NewEffectGroup(event, []*Effect{effect})
+}

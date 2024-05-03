@@ -18,6 +18,7 @@ type Player struct {
 	Role, MarkRole Role         // 真实身份 表面标记身份
 	Force          Force        // 势力
 	Cards          []*Card      // 手牌
+	JudgeCards     []*CardWrap  // 判定牌,可能是转换牌
 	SkillHolder    *SkillHolder // 技能
 }
 
@@ -84,6 +85,18 @@ func (p *Player) drawPlayer(screen *ebiten.Image) {
 	role := VerticalText(string(p.Role))
 	DrawText(screen, role, p.X+WinWidth-20, p.Y, AnchorTopCenter, Font18, ClrFFFFFF)
 	p.drawHp(screen, p.X+WinWidth-20, p.Y+50)
+	p.drawCard(screen)
+}
+
+//卡牌：宽 110 高 160  范围从 200 ～ 1200-200-40 只有非bot才需要绘制
+func (p *Player) drawCard(screen *ebiten.Image) {
+	offset := 110
+	if len(p.Cards)*110 > WinWidth-200-200-40 {
+		offset = (WinWidth - 200 - 200 - 40 - 110) / (len(p.Cards) - 1)
+	}
+	for i := 0; i < len(p.Cards); i++ {
+		DrawCard(screen, float32(200+i*offset), p.Y, p.Cards[i])
+	}
 }
 
 func (p *Player) drawHp(screen *ebiten.Image, x float32, y float32) {
