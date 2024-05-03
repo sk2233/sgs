@@ -29,9 +29,9 @@ func InitGeneral() {
 		MaxHp: 3,
 		Force: ForceWu,
 	}, {
-		Name:  "董卓",
-		Hp:    8,
-		MaxHp: 8,
+		Name:  "华雄",
+		Hp:    6,
+		MaxHp: 6,
 		Force: ForceQun,
 	}, {
 		Name:  "张辽",
