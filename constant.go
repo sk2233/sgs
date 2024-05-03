@@ -166,9 +166,9 @@ func (c CardSuit) String() string {
 	case SuitSpade:
 		return "黑"
 	case SuitClub:
-		return "方"
-	case SuitDiamond:
 		return "梅"
+	case SuitDiamond:
+		return "方"
 	default:
 		panic(fmt.Sprintf("invalid suit %d", c))
 	}
