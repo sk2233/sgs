@@ -97,3 +97,39 @@ func (s *SysGameStartSkill) CreateEffect(event *Event) *Effect {
 	}
 	return nil
 }
+
+//=============================SysDrawCardSkill系统 玩家摸牌阶段摸牌数===================================
+
+type SysDrawCardSkill struct {
+	*BaseSkill
+}
+
+func NewSysDrawCardSkill() *SysDrawCardSkill {
+	return &SysDrawCardSkill{BaseSkill: NewBaseSkill(TagNone, "")}
+}
+
+func (s *SysDrawCardSkill) HandleCondition(condition *Condition) bool {
+	if condition.Type != ConditionDrawCardNum {
+		return false
+	}
+	condition.CardNum = 2 // 默认摸 2 张
+	return true
+}
+
+//=============================SysMaxCardSkill系统 玩家最多保留多少牌===================================
+
+type SysMaxCardSkill struct {
+	*BaseSkill
+}
+
+func NewSysMaxCardSkill() *SysMaxCardSkill {
+	return &SysMaxCardSkill{BaseSkill: NewBaseSkill(TagNone, "")}
+}
+
+func (s *SysMaxCardSkill) HandleCondition(condition *Condition) bool {
+	if condition.Type != ConditionMaxCard {
+		return false
+	}
+	condition.MaxCard = condition.Src.Hp // 默认最多保留当前体力张牌
+	return true
+}

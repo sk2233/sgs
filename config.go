@@ -53,7 +53,7 @@ func LoadCard() []*Card {
 		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
 	res = append(res, &Card{Name: "方天画戟", Point: CardPoint(rand.Intn(13) + 1),
 		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	res = append(res, &Card{Name: "青釭剑", Point: CardPoint(rand.Intn(13) + 1),
+	res = append(res, &Card{Name: "青虹剑", Point: CardPoint(rand.Intn(13) + 1),
 		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
 	res = append(res, &Card{Name: "麒麟弓", Point: CardPoint(rand.Intn(13) + 1),
 		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})

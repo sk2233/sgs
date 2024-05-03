@@ -17,6 +17,7 @@ import (
 	"golang.org/x/image/font/opentype"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -92,21 +93,6 @@ func StrokeCircle(screen *ebiten.Image, x, y, r, sw float32, clr color.Color) {
 	vector.StrokeCircle(screen, x, y, r, sw, clr, false)
 }
 
-// 卡牌：宽 110 高 160
-func DrawCard(screen *ebiten.Image, x, y float32, card *Card) {
-	FillRect(screen, x, y, 110, 160, ClrDECDBA)
-	StoryRect(screen, x, y, 110, 160, 2, Clr000000)
-	pointAndSuit := fmt.Sprintf("%s\n%s", card.Suit, card.Point)
-	suitClr := GetSuitClr(card.Suit)
-	DrawText(screen, pointAndSuit, x+10, y+10, AnchorTopLeft, Font18, suitClr)
-	DrawText(screen, card.Name, x+55, y+80, AnchorMidCenter, Font16, Clr000000)
-	if card.Type == CardKit {
-		DrawText(screen, string(card.KitType), x+55, y+160-10, AnchorBtmCenter, Font16, Clr000000)
-	} else if card.Type == CardEquip {
-		DrawText(screen, string(card.EquipType), x+55, y+160-10, AnchorBtmCenter, Font16, Clr000000)
-	}
-}
-
 func GetSuitClr(suit CardSuit) color.Color {
 	if suit == SuitHeart || suit == SuitDiamond {
 		return ClrFF0000
@@ -140,4 +126,67 @@ func VerticalText(val string) string {
 
 func Int2Str(val int) string {
 	return strconv.FormatInt(int64(val), 10)
+}
+
+//===================Invoke=====================
+
+type IDraw interface {
+	Draw(screen *ebiten.Image)
+}
+
+func InvokeDraw(src any, screen *ebiten.Image) {
+	if tar, ok := src.(IDraw); ok {
+		tar.Draw(screen)
+	}
+}
+
+type IStageDraw interface {
+	DrawStage(screen *ebiten.Image, player *Player, extra *StageExtra)
+}
+
+func InvokeDrawStage(src any, screen *ebiten.Image, player *Player, extra *StageExtra) {
+	if tar, ok := src.(IStageDraw); ok {
+		tar.DrawStage(screen, player, extra)
+	}
+}
+
+type IStageInit interface {
+	InitStage(player *Player, extra *StageExtra)
+}
+
+func InvokeInitStage(src any, player *Player, extra *StageExtra) {
+	if tar, ok := src.(IStageInit); ok {
+		tar.InitStage(player, extra)
+	}
+}
+
+//==================点击交互===================
+
+// 与游戏的交互只有右键点击
+func MouseClick() (float32, float32, bool) {
+	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return 0, 0, false
+	}
+	x, y := ebiten.CursorPosition()
+	return float32(x), float32(y), true
+}
+
+//==================collection==================
+
+func Filter[T any](data []T, filter func(T) bool) []T {
+	res := make([]T, 0)
+	for _, item := range data {
+		if filter(item) {
+			res = append(res, item)
+		}
+	}
+	return res
+}
+
+func Map[S any, D any](data []S, trans func(S) D) []D {
+	res := make([]D, 0, len(data))
+	for _, item := range data {
+		res = append(res, trans(item))
+	}
+	return res
 }

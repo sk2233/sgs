@@ -4,6 +4,10 @@
 */
 package main
 
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
 type StageExtra struct {
 	SkipStage StageType
 }
@@ -85,9 +89,39 @@ func NewDrawStage() *DrawStage {
 }
 
 //====================PlayStage出牌阶段======================
+//****************非bot*********************
 
-type PlayStage struct {
+type PlayStage struct { // 非bot专用
 	*BaseStage
+	Buttons []*Button
+}
+
+// 绘制区域 240 ~ 1200-240 y底部是280*2 至少绘制「出牌」「取消」若有技能接着绘制
+func (p *PlayStage) InitStage(player *Player, extra *StageExtra) {
+	p.InitAndTidyBtn(player)
+}
+
+// 若存在技能更新，需要再次调用改方法，重新创建计算
+func (p *PlayStage) InitAndTidyBtn(player *Player) {
+	p.Buttons = []*Button{NewButton(TextPlayCard), NewButton(TextCancel)}
+	// TODO 收集武将与装备技能
+	last := float32(WinWidth - 240 - 240)
+	for _, button := range p.Buttons {
+		last -= button.W
+	}
+	offset := last / float32(len(p.Buttons)+1) // 计算偏移 若是技能太多，offset会变成负数，按钮会叠在一起
+	x := 240 + offset
+	y := 280 + 280 - p.Buttons[0].H - 20
+	for _, button := range p.Buttons {
+		button.X, button.Y = x, y
+		x += offset + button.W
+	}
+}
+
+func (p *PlayStage) DrawStage(screen *ebiten.Image, player *Player, extra *StageExtra) {
+	for _, button := range p.Buttons {
+		button.Draw(screen)
+	}
 }
 
 func (p *PlayStage) GetStage() StageType {
@@ -95,13 +129,54 @@ func (p *PlayStage) GetStage() StageType {
 }
 
 func NewPlayStage() *PlayStage {
-	return &PlayStage{BaseStage: NewBaseStage()}
+	res := &PlayStage{}
+	base := NewBaseStage(NewPlayStageMainStep(res))
+	res.BaseStage = base
+	return res
+}
+
+//******************bot专用******************
+
+type BotPlayStage struct { // bot专用
+	*BaseStage
+}
+
+func (p *BotPlayStage) GetStage() StageType {
+	return StagePlay
+}
+
+func NewBotPlayStage() *BotPlayStage {
+	return &BotPlayStage{BaseStage: NewBaseStage(NewBotPlayStageStep())}
 }
 
 //====================DiscardStage弃牌阶段======================
+//********************非bot专用**********************
 
 type DiscardStage struct {
 	*BaseStage
+	Buttons []*Button
+}
+
+func (d *DiscardStage) InitStage(player *Player, extra *StageExtra) {
+	// 只有「确定」与「取消」
+	d.Buttons = []*Button{NewButton(TextConfirm), NewButton(TextCancel)}
+	last := float32(WinWidth - 240 - 240)
+	for _, button := range d.Buttons {
+		last -= button.W
+	}
+	offset := last / float32(len(d.Buttons)+1) // 计算偏移
+	x := 240 + offset
+	y := 280 + 280 - d.Buttons[0].H - 20
+	for _, button := range d.Buttons {
+		button.X, button.Y = x, y
+		x += offset + button.W
+	}
+}
+
+func (d *DiscardStage) DrawStage(screen *ebiten.Image, player *Player, extra *StageExtra) {
+	for _, button := range d.Buttons {
+		button.Draw(screen)
+	}
 }
 
 func (d *DiscardStage) GetStage() StageType {
@@ -109,7 +184,24 @@ func (d *DiscardStage) GetStage() StageType {
 }
 
 func NewDiscardStage() *DiscardStage {
-	return &DiscardStage{BaseStage: NewBaseStage()}
+	res := &DiscardStage{}
+	base := NewBaseStage(NewDiscardStageCheckStep(), NewDiscardStageMainStep(res))
+	res.BaseStage = base
+	return res
+}
+
+//**********************bot专用************************
+
+type BotDiscardStage struct { // bot专用
+	*BaseStage
+}
+
+func (p *BotDiscardStage) GetStage() StageType {
+	return StagePlay
+}
+
+func NewBotDiscardStage() *BotDiscardStage {
+	return &BotDiscardStage{BaseStage: NewBaseStage(NewBotDiscardStageStep())}
 }
 
 //====================EndStage回合结束阶段========================

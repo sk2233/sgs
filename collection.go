@@ -4,6 +4,8 @@
 */
 package main
 
+//=================Stack====================
+
 type Stack[T any] struct {
 	data []T
 }
@@ -30,4 +32,27 @@ func (s *Stack[T]) Peek() T {
 
 func (s *Stack[T]) Len() int {
 	return len(s.data)
+}
+
+//================Set=================
+
+type Set[T comparable] struct {
+	data map[T]struct{}
+}
+
+func NewSet[T comparable](data ...T) *Set[T] {
+	res := &Set[T]{data: make(map[T]struct{}, len(data))}
+	for _, item := range data {
+		res.Add(item)
+	}
+	return res
+}
+
+func (s *Set[T]) Add(data T) {
+	s.data[data] = struct{}{}
+}
+
+func (s *Set[T]) Contain(data T) bool {
+	_, ok := s.data[data]
+	return ok
 }

@@ -17,9 +17,10 @@ type Player struct {
 	General        *General     // 武将信息 主要包含一些元数据信息，需要变化的信息都会扩展到外面
 	Role, MarkRole Role         // 真实身份 表面标记身份
 	Force          Force        // 势力
-	Cards          []*Card      // 手牌
+	Cards          []*CardUI    // 手牌
 	JudgeCards     []*CardWrap  // 判定牌,可能是转换牌
 	SkillHolder    *SkillHolder // 技能
+	Select         bool         // 是否被选择
 }
 
 func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
@@ -41,8 +42,9 @@ func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
 		Role:        role,
 		MarkRole:    markRole,
 		Force:       general.Force,
-		Cards:       make([]*Card, 0),
+		Cards:       make([]*CardUI, 0),
 		SkillHolder: NewSkillHolder(),
+		Select:      false,
 	}
 }
 
@@ -70,6 +72,9 @@ func (p *Player) drawBot(screen *ebiten.Image) {
 	p.drawHp(screen, p.X+200+20, p.Y+50)
 	cardNum := Int2Str(len(p.Cards))
 	DrawText(screen, cardNum, p.X+200+20, p.Y+280-20, AnchorMidCenter, Font18, Clr000000)
+	if p.Select {
+		StrokeCircle(screen, p.X+120, p.Y+140, 40, 4, Clr00FF00)
+	}
 }
 
 //装备栏：宽 200 高 40
@@ -85,17 +90,11 @@ func (p *Player) drawPlayer(screen *ebiten.Image) {
 	role := VerticalText(string(p.Role))
 	DrawText(screen, role, p.X+WinWidth-20, p.Y, AnchorTopCenter, Font18, ClrFFFFFF)
 	p.drawHp(screen, p.X+WinWidth-20, p.Y+50)
-	p.drawCard(screen)
-}
-
-//卡牌：宽 110 高 160  范围从 200 ～ 1200-200-40 只有非bot才需要绘制
-func (p *Player) drawCard(screen *ebiten.Image) {
-	offset := 110
-	if len(p.Cards)*110 > WinWidth-200-200-40 {
-		offset = (WinWidth - 200 - 200 - 40 - 110) / (len(p.Cards) - 1)
+	for _, card := range p.Cards {
+		card.Draw(screen)
 	}
-	for i := 0; i < len(p.Cards); i++ {
-		DrawCard(screen, float32(200+i*offset), p.Y, p.Cards[i])
+	if p.Select {
+		StrokeCircle(screen, p.X+WinWidth-120, p.Y+80, 40, 4, Clr00FF00)
 	}
 }
 
@@ -116,10 +115,82 @@ func (p *Player) drawHp(screen *ebiten.Image, x float32, y float32) {
 }
 
 func (p *Player) DrawCard(num int) {
+	if num == 0 {
+		return
+	}
 	cards := MainGame.DrawCard(num)
-	p.Cards = append(p.Cards, cards...)
+	for _, card := range cards {
+		p.Cards = append(p.Cards, NewCardUI(card))
+	}
+	p.TidyCard()
+}
+
+func (p *Player) DiscardCard(cards []*Card) {
+	if len(cards) == 0 {
+		return
+	}
+	set := NewSet[*Card](cards...)
+	p.Cards = Filter(p.Cards, func(item *CardUI) bool {
+		return !set.Contain(item.Card)
+	})
+	p.TidyCard()
+	MainGame.DiscardCard(cards)
 }
 
 func (p *Player) GetEquipSkillHolders() []*SkillHolder {
 	return make([]*SkillHolder, 0)
+}
+
+//卡牌：宽 110 高 160  范围从 200 ～ 1200-200-40 只有非bot才需要绘制
+func (p *Player) TidyCard() {
+	if p.IsBot {
+		return
+	}
+	offset := 110
+	if len(p.Cards)*110 > WinWidth-200-200-40 {
+		offset = (WinWidth - 200 - 200 - 40 - 110) / (len(p.Cards) - 1)
+	}
+	for i := 0; i < len(p.Cards); i++ {
+		p.Cards[i].Select = false
+		p.Cards[i].X, p.Cards[i].Y = float32(200+i*offset), p.Y
+	}
+}
+
+func (p *Player) ToggleCard(x, y float32) bool {
+	for _, card := range p.Cards {
+		if card.Click(x, y) {
+			card.Toggle()
+			return true
+		}
+	}
+	return false
+}
+
+//装备栏：宽 200 高 40<br>
+//武将头图：宽 200 高 120<br>
+//身份,血条,手牌侧边：宽 40 高 280(玩家的话是160)<br>
+func (p *Player) ToggleSelect(tx, ty float32) bool {
+	x := p.X
+	y := p.Y
+	w := float32(200 + 40)
+	h := float32(280)
+	if !p.IsBot {
+		x = WinWidth - w
+		h = 160
+	}
+	if tx > x && tx < x+w && ty > y && ty < y+h {
+		p.Select = !p.Select
+		return true
+	}
+	return false
+}
+
+func (p *Player) GetSelectCard() []*Card {
+	res := make([]*Card, 0)
+	for _, card := range p.Cards {
+		if card.Select {
+			res = append(res, card.Card)
+		}
+	}
+	return res
 }

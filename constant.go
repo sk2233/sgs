@@ -12,12 +12,15 @@ var (
 	ClrFFFFFF = Hex2Clr("FFFFFF")
 	ClrFF0000 = Hex2Clr("FF0000")
 	Clr000000 = Hex2Clr("000000")
+	Clr00FF00 = Hex2Clr("00FF00")
 	Clr0D0D0D = Hex2Clr("0D0D0D")
 	Clr362618 = Hex2Clr("362618")
 	ClrDECDBA = Hex2Clr("DECDBA")
 	ClrD84B3C = Hex2Clr("D84B3C") // hp 红
 	ClrFEF660 = Hex2Clr("FEF660") // hp 黄
 	ClrAAD745 = Hex2Clr("AAD745") // hp 绿
+	Clr348EBB = Hex2Clr("348EBB") // 按钮背景色
+	ClrA66F3F = Hex2Clr("A66F3F") // 按钮描边色
 )
 
 var (
@@ -77,8 +80,9 @@ const (
 type ConditionType string
 
 const (
-	ConditionInitCard      ConditionType = "ConditionInitCard"      // 初始手牌数量
-	ConditionDrawStageCard ConditionType = "ConditionDrawStageCard" // 摸牌阶段摸牌数量
+	ConditionInitCard    ConditionType = "ConditionInitCard"    // 初始手牌数量
+	ConditionDrawCardNum ConditionType = "ConditionDrawCardNum" // 摸牌阶段摸牌数量
+	ConditionMaxCard     ConditionType = "ConditionMaxCard"     // 计算手牌上限
 )
 
 type SkillTag int
@@ -212,4 +216,10 @@ const (
 	WrapSimple  WrapType = ""
 	WrapTrans   WrapType = "转换"
 	WrapVirtual WrapType = "虚拟"
+)
+
+const (
+	TextPlayCard = "出牌"
+	TextCancel   = "取消"
+	TextConfirm  = "确定"
 )

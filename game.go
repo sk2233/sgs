@@ -25,7 +25,8 @@ func NewGame() *Game {
 	MainGame = &Game{
 		Players:     players,
 		ActionStack: stack,
-		SkillHolder: NewSkillHolder(NewSysInitCardSkill(), NewSysGameStartSkill()),
+		SkillHolder: NewSkillHolder(NewSysInitCardSkill(), NewSysGameStartSkill(),
+			NewSysDrawCardSkill(), NewSysMaxCardSkill()),
 		CardManager: NewCardManager(),
 	}
 	return MainGame
@@ -39,9 +40,18 @@ func (g *Game) Update() error {
 
 // 每帧绘制的画面
 func (g *Game) Draw(screen *ebiten.Image) {
-	for _, player := range g.Players {
+	var player *Player
+	for _, item := range g.Players { // Players是出牌顺序
+		if item.IsBot {
+			item.Draw(screen)
+		} else {
+			player = item
+		}
+	}
+	if player != nil { // 玩家留到最后绘制，防止被其他 bot 遮挡
 		player.Draw(screen)
 	}
+	InvokeDraw(g.ActionStack.Peek(), screen)
 }
 
 // 设置画布的大小，入参窗口大小，返回画布大小
@@ -111,4 +121,18 @@ func (g *Game) DrawCard(num int) []*Card {
 
 func (g *Game) DiscardCard(cards []*Card) {
 	g.CardManager.DiscardCard(cards)
+}
+
+func (g *Game) TogglePlayer(x, y float32) {
+	for _, player := range g.Players {
+		if player.ToggleSelect(x, y) {
+			return
+		}
+	}
+}
+
+func (g *Game) ResetPlayer() {
+	for _, player := range g.Players {
+		player.Select = false
+	}
 }

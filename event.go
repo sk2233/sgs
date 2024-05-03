@@ -18,4 +18,5 @@ type Condition struct {
 	// 泛用参数
 	Src, Desc *Player // 条件的目标对象与原对象只能是一个
 	CardNum   int
+	MaxCard   int
 }

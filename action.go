@@ -4,6 +4,8 @@
 */
 package main
 
+import "github.com/hajimehoshi/ebiten/v2"
+
 type IAction interface { // 用于统一 效果组与游戏刚开始的一些简单效果
 	Update()
 }
@@ -39,9 +41,17 @@ type PlayerStageAction struct {
 }
 
 func NewPlayerStageAction(player *Player) *PlayerStageAction {
+	var playStage, discardStage IStage
+	if player.IsBot {
+		playStage = NewBotPlayStage()
+		discardStage = NewBotDiscardStage()
+	} else {
+		playStage = NewPlayStage()
+		discardStage = NewDiscardStage()
+	}
 	return &PlayerStageAction{Player: player,
-		Stages: []IStage{NewPrepareStage(), NewJudgeStage(), NewDrawStage(), NewPlayStage(),
-			NewDiscardStage(), NewEndStage()}, Extra: NewStageExtra()}
+		Stages: []IStage{NewPrepareStage(), NewJudgeStage(), NewDrawStage(), playStage,
+			discardStage, NewEndStage()}, Extra: NewStageExtra()}
 }
 
 func (p *PlayerStageAction) Update() {
@@ -51,9 +61,18 @@ func (p *PlayerStageAction) Update() {
 			for p.Index < len(p.Stages) && (p.Stages[p.Index].GetStage()&p.Extra.SkipStage) > 0 {
 				p.Index++
 			}
+			if p.Index < len(p.Stages) { // 可能照顾不到第一个阶段「开始阶段」
+				InvokeInitStage(p.Stages[p.Index], p.Player, p.Extra)
+			}
 		}
 	} else {
 		MainGame.PopAction()  // 弹出玩家阶段行为
 		MainGame.NextPlayer() // 寻找下一个合法玩家压栈
+	}
+}
+
+func (p *PlayerStageAction) Draw(screen *ebiten.Image) {
+	if p.Index < len(p.Stages) {
+		InvokeDrawStage(p.Stages[p.Index], screen, p.Player, p.Extra)
 	}
 }
