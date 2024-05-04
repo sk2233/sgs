@@ -160,6 +160,26 @@ func InvokeInitStage(src any, player *Player, extra *StageExtra) {
 	}
 }
 
+type ITop interface {
+	Top()
+}
+
+func InvokeTop(src any) {
+	if tar, ok := src.(ITop); ok {
+		tar.Top()
+	}
+}
+
+type IStageTop interface {
+	TopStage(player *Player, extra *StageExtra)
+}
+
+func InvokeTopStage(src any, player *Player, extra *StageExtra) {
+	if tar, ok := src.(IStageTop); ok {
+		tar.TopStage(player, extra)
+	}
+}
+
 //==================点击交互===================
 
 // 与游戏的交互只有右键点击
@@ -189,4 +209,20 @@ func Map[S any, D any](data []S, trans func(S) D) []D {
 		res = append(res, trans(item))
 	}
 	return res
+}
+
+//===================math==================
+
+func Abs[T int](val T) T {
+	if val < 0 {
+		return -val
+	}
+	return val
+}
+
+func Min[T int](val1, val2 T) T {
+	if val1 < val2 {
+		return val1
+	}
+	return val2
 }

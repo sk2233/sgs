@@ -7,20 +7,21 @@ package main
 import "fmt"
 
 var (
-	Clr65401E = Hex2Clr("65401E")
-	Clr553010 = Hex2Clr("553010")
-	ClrFFFFFF = Hex2Clr("FFFFFF")
-	ClrFF0000 = Hex2Clr("FF0000")
-	Clr000000 = Hex2Clr("000000")
-	Clr00FF00 = Hex2Clr("00FF00")
-	Clr0D0D0D = Hex2Clr("0D0D0D")
-	Clr362618 = Hex2Clr("362618")
-	ClrDECDBA = Hex2Clr("DECDBA")
-	ClrD84B3C = Hex2Clr("D84B3C") // hp 红
-	ClrFEF660 = Hex2Clr("FEF660") // hp 黄
-	ClrAAD745 = Hex2Clr("AAD745") // hp 绿
-	Clr348EBB = Hex2Clr("348EBB") // 按钮背景色
-	ClrA66F3F = Hex2Clr("A66F3F") // 按钮描边色
+	Clr65401E   = Hex2Clr("65401E")
+	Clr553010   = Hex2Clr("553010")
+	ClrFFFFFF   = Hex2Clr("FFFFFF")
+	ClrFF0000   = Hex2Clr("FF0000")
+	Clr000000   = Hex2Clr("000000")
+	Clr00FF00   = Hex2Clr("00FF00")
+	Clr0D0D0D   = Hex2Clr("0D0D0D")
+	Clr362618   = Hex2Clr("362618")
+	ClrDECDBA   = Hex2Clr("DECDBA")
+	Clr00000080 = Hex2Clr("00000080")
+	ClrD84B3C   = Hex2Clr("D84B3C") // hp 红
+	ClrFEF660   = Hex2Clr("FEF660") // hp 黄
+	ClrAAD745   = Hex2Clr("AAD745") // hp 绿
+	Clr348EBB   = Hex2Clr("348EBB") // 按钮背景色
+	ClrA66F3F   = Hex2Clr("A66F3F") // 按钮描边色
 )
 
 var (
@@ -74,7 +75,7 @@ const (
 	EventStageEnd     EventType = "EventStageEnd"     // 回合结束阶段事件
 	EventJudgeCard    EventType = "EventJudgeCard"    // 判定事件发生后已经拿到判定牌了，但是还没有生效
 	EventJudgeEnd     EventType = "EventJudgeEnd"     // 判定牌生效后
-	EventCardSkill    EventType = "EventCardSkill"    // 调用卡牌效果，并不算事件
+	EventUseCard      EventType = "EventUseCard"      // 调用卡牌效果
 )
 
 type ConditionType string
@@ -83,6 +84,10 @@ const (
 	ConditionInitCard    ConditionType = "ConditionInitCard"    // 初始手牌数量
 	ConditionDrawCardNum ConditionType = "ConditionDrawCardNum" // 摸牌阶段摸牌数量
 	ConditionMaxCard     ConditionType = "ConditionMaxCard"     // 计算手牌上限
+	ConditionGetDist     ConditionType = "ConditionGetDist"     // 计算从src到desc的距离
+	ConditionUseCard     ConditionType = "ConditionUseShaAll"   // 计算使用牌的一些总的条件，不针对具体目标
+	ConditionCardMaxDesc ConditionType = "ConditionCardMaxDesc" // 卡牌最多可指定的目标数目
+	ConditionUseSha      ConditionType = "ConditionUseSha"      // 计算使用杀的一些条件，针对具体目标
 )
 
 type SkillTag int
@@ -222,4 +227,9 @@ const (
 	TextPlayCard = "出牌"
 	TextCancel   = "取消"
 	TextConfirm  = "确定"
+)
+
+const (
+	MaxTipOffset   = WinHeight / 4
+	MinTipInterval = 25
 )

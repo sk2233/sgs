@@ -7,6 +7,9 @@ package main
 type StepExtra struct {
 	Index     int // 步骤进行到那里了
 	JudgeCard *CardWrap
+	ShaCount  int // 出了几次杀了
+	Card      *CardUI
+	MaxDesc   int
 }
 
 func NewStepExtra() *StepExtra {
@@ -93,8 +96,8 @@ func (j *JudgeStageExecuteStep) Update(event *Event, extra *StepExtra) { // 普�
 	src := event.Src
 	card := src.JudgeCards[0]
 	src.JudgeCards = src.JudgeCards[1:]
-	MainGame.PushAction(NewEffectGroupBySkill(&Event{
-		Type:      EventCardSkill,
+	MainGame.PushAction(NewEffectGroupBySkill(&Event{ // 延时锦囊牌的牌面效果与装备牌类似，都是添加一个新对象 TODO 这里是有问题的
+		Type:      EventUseCard,
 		Src:       src,   // 这里相当于延时技能自己成来源了
 		StepExtra: extra, // 主要为了传递判定牌
 	}, card.Desc.Skill))
@@ -133,17 +136,73 @@ func (j *JudgeCardEndStep) Update(event *Event, extra *StepExtra) {
 
 //=========================PlayStageMainStep出牌主要阶段============================
 
-type PlayStageMainStep struct {
+type PlayStageCardStep struct {
 	PlayStage *PlayStage // 需要获取到按钮状态
 }
 
-func NewPlayStageMainStep(playStage *PlayStage) *PlayStageMainStep {
-	return &PlayStageMainStep{PlayStage: playStage}
+func NewPlayStageCardStep(playStage *PlayStage) *PlayStageCardStep {
+	return &PlayStageCardStep{PlayStage: playStage}
 }
 
-// 当前设计比较简单，可以任意选择任意张卡，任意名角色，然后点击「出牌」「取消」或技能，「出牌」调用卡牌技能处理
-// 「取消」若是由存在选择的手牌，先取消选择，再点击取消流转到下个回合，点击技能触发技能处理
-func (p *PlayStageMainStep) Update(event *Event, extra *StepExtra) {
+// 选择卡牌 -> 下个Step选择目标
+// 出牌无效
+// 取消->下个阶段
+// 技能->按技能处理
+func (p *PlayStageCardStep) Update(event *Event, extra *StepExtra) {
+	x, y, ok := MouseClick()
+	if !ok { // 点击事件是基础
+		return
+	}
+	player := event.Src
+	// 判断点击手牌
+	for _, card := range player.Cards {
+		if card.Click(x, y) {
+			card.Select()
+			extra.Card = card
+			extra.MaxDesc = card.Card.Skill.GetMaxDesc(player, card.Card)
+			MainGame.ResetPlayer()
+			if extra.MaxDesc > 0 { // 若是不需要目标，提前全部设置为灰色
+				MainGame.CheckPlayer(player, card.Card)
+			} else {
+				for _, item := range MainGame.Players {
+					item.CanSelect = false
+				}
+			}
+			extra.Index++ // 进入下个阶段
+			return
+		}
+	}
+	// 判断点击按钮
+	if p.HandleBtnClick(x, y, extra) {
+		return
+	}
+	// TODO 判断点击技能
+}
+
+func (p *PlayStageCardStep) HandleBtnClick(x, y float32, extra *StepExtra) bool {
+	for _, button := range p.PlayStage.Buttons {
+		if button.Click(x, y) && button.Text == TextCancel {
+			extra.Index = MaxIndex // 结束本阶段
+			return true
+		}
+	}
+	return false
+}
+
+//===============================PlayStagePlayerStep已经选择卡牌了需要选择目标了=================================
+
+type PlayStagePlayerStep struct {
+	PlayStage *PlayStage // 需要获取到按钮状态
+}
+
+func NewPlayStagePlayerStep(playStage *PlayStage) *PlayStagePlayerStep {
+	return &PlayStagePlayerStep{PlayStage: playStage}
+}
+
+// 出牌->技能简单判断选择数目是否合适,合适出牌并重置为上一个阶段，否则无事发生
+// 取消-> 取消当前选择，回到上一个 Step
+// 选择目标->查看是否达到最大，最大设置其他角色不再可选
+func (p *PlayStagePlayerStep) Update(event *Event, extra *StepExtra) {
 	x, y, ok := MouseClick()
 	if !ok { // 点击事件是基础
 		return
@@ -153,30 +212,38 @@ func (p *PlayStageMainStep) Update(event *Event, extra *StepExtra) {
 	if p.HandleBtnClick(player, x, y, extra) {
 		return
 	}
-	// 判断点击手牌
-	if player.ToggleCard(x, y) {
+	// 判断选择目标
+	if MainGame.TogglePlayer(x, y) {
+		if len(MainGame.GetSelectPlayer()) >= extra.MaxDesc {
+			for _, item := range MainGame.Players { // 选满了，不能再选择了
+				if !item.Select {
+					item.CanSelect = false
+				}
+			}
+		} else { // 没有选满，可以再选择，可能取消选择了
+			MainGame.CheckPlayer(player, extra.Card.Card)
+		}
 		return
 	}
-	// TODO 判断点击装备
-	// 判断点击player
-	MainGame.TogglePlayer(x, y)
 }
 
-func (p *PlayStageMainStep) HandleBtnClick(player *Player, x, y float32, extra *StepExtra) bool {
+func (p *PlayStagePlayerStep) HandleBtnClick(player *Player, x, y float32, extra *StepExtra) bool {
 	for _, button := range p.PlayStage.Buttons {
 		if button.Click(x, y) {
 			if button.Text == TextPlayCard {
-				// TODO 触发牌的效果
-				cards := player.GetSelectCard() // 后面这里是只能有一张的 这里先不管
-				player.DiscardCard(cards)
-				MainGame.ResetPlayer()
-			} else if button.Text == TextCancel {
-				cards := player.GetSelectCard()
-				if len(cards) > 0 { // 取消选择
-					player.TidyCard()
-				} else { // 下一步
-					extra.Index = MaxIndex
+				card := extra.Card.Card
+				desc := MainGame.GetSelectPlayer()
+				event := &Event{Type: EventUseCard, Src: player, Desc: desc, Card: NewSimpleCardWrap(card)}
+				effect := card.Skill.CreateEffect(event)
+				if effect != nil { // 只需要简单校验即可，例如目标数是否有意义，TODO 后面里面可能进行具体校验
+					MainGame.PushAction(NewEffectGroup(event, []*Effect{effect}))
+					extra.Index = 0
+					MainGame.ResetPlayer()
 				}
+			} else if button.Text == TextCancel {
+				extra.Card.UnSelect()
+				extra.Index = 0
+				MainGame.ResetPlayer()
 			}
 			return true
 		}
@@ -216,6 +283,7 @@ func (d *DiscardStageCheckStep) Update(event *Event, extra *StepExtra) {
 	condition := MainGame.ComputeCondition(&Condition{Type: ConditionMaxCard, Src: player})
 	if len(player.Cards) > condition.MaxCard {
 		extra.Index++
+		player.ResetCard()
 	} else {
 		extra.Index = MaxIndex
 	}
@@ -231,6 +299,9 @@ func NewDiscardStageMainStep(discardStage *DiscardStage) *DiscardStageMainStep {
 	return &DiscardStageMainStep{DiscardStage: discardStage}
 }
 
+// 点击卡牌切换卡牌切换状态
+// 点击「确定」弃牌
+// 点击「取消」重置选择
 func (d *DiscardStageMainStep) Update(event *Event, extra *StepExtra) {
 	x, y, ok := MouseClick()
 	if !ok { // 点击事件是基础
@@ -242,7 +313,18 @@ func (d *DiscardStageMainStep) Update(event *Event, extra *StepExtra) {
 		return
 	}
 	// 判断点击手牌
-	player.ToggleCard(x, y)
+	if player.ToggleCard(x, y) {
+		condition := MainGame.ComputeCondition(&Condition{Type: ConditionMaxCard, Src: player})
+		if len(player.Cards)-len(player.GetSelectCard()) <= condition.MaxCard {
+			for _, card := range player.Cards { // 已经选够了，不能再选了
+				if !card.Select0 {
+					card.CanSelect = false
+				}
+			}
+		} else { // 可能取消了部分选择，又可以再选了
+			player.ResetCard()
+		}
+	}
 }
 
 func (d *DiscardStageMainStep) HandleBtnClick(player *Player, x, y float32, extra *StepExtra) bool {
@@ -253,13 +335,10 @@ func (d *DiscardStageMainStep) HandleBtnClick(player *Player, x, y float32, extr
 				return true
 			}
 			if button.Text == TextConfirm {
-				condition := MainGame.ComputeCondition(&Condition{Type: ConditionMaxCard, Src: player})
-				if len(cards) <= len(player.Cards)-condition.MaxCard {
-					player.DiscardCard(cards)
-					extra.Index = 0 // 再去 Check
-				}
+				player.DiscardCard(cards)
+				extra.Index = 0 // 再去 Check
 			} else if button.Text == TextCancel {
-				player.TidyCard()
+				player.ResetCard()
 			}
 			return true
 		}

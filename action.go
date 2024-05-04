@@ -40,6 +40,12 @@ type PlayerStageAction struct {
 	Index  int
 }
 
+func (p *PlayerStageAction) Top() {
+	if p.Index < len(p.Stages) { // 只能监听到从非栈顶，到栈顶的过程
+		InvokeTopStage(p.Stages[p.Index], p.Player, p.Extra)
+	}
+}
+
 func NewPlayerStageAction(player *Player) *PlayerStageAction {
 	var playStage, discardStage IStage
 	if player.IsBot {

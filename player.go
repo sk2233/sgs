@@ -21,6 +21,7 @@ type Player struct {
 	JudgeCards     []*CardWrap  // 判定牌,可能是转换牌
 	SkillHolder    *SkillHolder // 技能
 	Select         bool         // 是否被选择
+	CanSelect      bool         // 是否可以被选择
 }
 
 func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
@@ -75,6 +76,9 @@ func (p *Player) drawBot(screen *ebiten.Image) {
 	if p.Select {
 		StrokeCircle(screen, p.X+120, p.Y+140, 40, 4, Clr00FF00)
 	}
+	if !p.CanSelect {
+		FillRect(screen, p.X, p.Y, 200+40, 280, Clr00000080)
+	}
 }
 
 //装备栏：宽 200 高 40
@@ -95,6 +99,9 @@ func (p *Player) drawPlayer(screen *ebiten.Image) {
 	}
 	if p.Select {
 		StrokeCircle(screen, p.X+WinWidth-120, p.Y+80, 40, 4, Clr00FF00)
+	}
+	if !p.CanSelect {
+		FillRect(screen, p.X+WinWidth-200-40, p.Y, 200+40, 160, Clr00000080)
 	}
 }
 
@@ -151,8 +158,14 @@ func (p *Player) TidyCard() {
 		offset = (WinWidth - 200 - 200 - 40 - 110) / (len(p.Cards) - 1)
 	}
 	for i := 0; i < len(p.Cards); i++ {
-		p.Cards[i].Select = false
 		p.Cards[i].X, p.Cards[i].Y = float32(200+i*offset), p.Y
+	}
+}
+
+func (p *Player) ResetCard() {
+	for i := 0; i < len(p.Cards); i++ {
+		p.Cards[i].CanSelect = true
+		p.Cards[i].Select0 = false
 	}
 }
 
@@ -170,6 +183,9 @@ func (p *Player) ToggleCard(x, y float32) bool {
 //武将头图：宽 200 高 120<br>
 //身份,血条,手牌侧边：宽 40 高 280(玩家的话是160)<br>
 func (p *Player) ToggleSelect(tx, ty float32) bool {
+	if !p.CanSelect {
+		return false
+	}
 	x := p.X
 	y := p.Y
 	w := float32(200 + 40)
@@ -188,9 +204,15 @@ func (p *Player) ToggleSelect(tx, ty float32) bool {
 func (p *Player) GetSelectCard() []*Card {
 	res := make([]*Card, 0)
 	for _, card := range p.Cards {
-		if card.Select {
+		if card.Select0 {
 			res = append(res, card.Card)
 		}
 	}
 	return res
+}
+
+func (p *Player) CheckCard(extra *StepExtra) {
+	for _, card := range p.Cards {
+		card.CanSelect = card.Card.Skill.CheckUse(p, card.Card, extra)
+	}
 }

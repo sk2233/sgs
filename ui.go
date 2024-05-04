@@ -71,8 +71,9 @@ func NewButton(show string) *Button {
 
 type CardUI struct {
 	*BaseRect
-	Card   *Card
-	Select bool
+	Card      *Card
+	Select0   bool
+	CanSelect bool
 }
 
 func (c *CardUI) Draw(screen *ebiten.Image) {
@@ -87,18 +88,35 @@ func (c *CardUI) Draw(screen *ebiten.Image) {
 	} else if c.Card.Type == CardEquip {
 		DrawText(screen, string(c.Card.EquipType), c.X+c.W/2, c.Y+c.H-10, AnchorBtmCenter, Font16, Clr000000)
 	}
+	if !c.CanSelect {
+		FillRect(screen, c.X, c.Y, c.W, c.H, Clr00000080)
+	}
 }
 
 func (c *CardUI) Toggle() {
-	c.Select = !c.Select
-	if c.Select {
+	c.Select0 = !c.Select0
+	if c.Select0 {
 		c.Y -= 20
 	} else {
 		c.Y += 20
 	}
 }
 
+func (c *CardUI) Click(x, y float32) bool {
+	return c.CanSelect && c.BaseRect.Click(x, y)
+}
+
+func (c *CardUI) UnSelect() {
+	c.Select0 = false
+	c.Y += 20
+}
+
+func (c *CardUI) Select() {
+	c.Select0 = true
+	c.Y -= 20
+}
+
 // 卡牌：宽 110 高 160
 func NewCardUI(card *Card) *CardUI {
-	return &CardUI{Card: card, BaseRect: NewBaseRect(110, 160), Select: false}
+	return &CardUI{Card: card, BaseRect: NewBaseRect(110, 160), Select0: false}
 }

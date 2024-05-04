@@ -93,18 +93,18 @@ func NewDrawStage() *DrawStage {
 
 type PlayStage struct { // 非bot专用
 	*BaseStage
-	Buttons []*Button
+	Buttons []*Button // 主动技能还是画到武将身上吧，这里只有「出牌」与「取消」
 }
 
-// 绘制区域 240 ~ 1200-240 y底部是280*2 至少绘制「出牌」「取消」若有技能接着绘制
+// 刚回来一定是阶段 0
+func (p *PlayStage) TopStage(player *Player, extra *StageExtra) {
+	player.ResetCard()
+	player.CheckCard(p.Extra)
+}
+
+// 绘制区域 240 ~ 1200-240 y底部是280*2 绘制「出牌」「取消」
 func (p *PlayStage) InitStage(player *Player, extra *StageExtra) {
-	p.InitAndTidyBtn(player)
-}
-
-// 若存在技能更新，需要再次调用改方法，重新创建计算
-func (p *PlayStage) InitAndTidyBtn(player *Player) {
 	p.Buttons = []*Button{NewButton(TextPlayCard), NewButton(TextCancel)}
-	// TODO 收集武将与装备技能
 	last := float32(WinWidth - 240 - 240)
 	for _, button := range p.Buttons {
 		last -= button.W
@@ -116,6 +116,8 @@ func (p *PlayStage) InitAndTidyBtn(player *Player) {
 		button.X, button.Y = x, y
 		x += offset + button.W
 	}
+	player.ResetCard()
+	player.CheckCard(p.Extra)
 }
 
 func (p *PlayStage) DrawStage(screen *ebiten.Image, player *Player, extra *StageExtra) {
@@ -130,7 +132,7 @@ func (p *PlayStage) GetStage() StageType {
 
 func NewPlayStage() *PlayStage {
 	res := &PlayStage{}
-	base := NewBaseStage(NewPlayStageMainStep(res))
+	base := NewBaseStage(NewPlayStageCardStep(res), NewPlayStagePlayerStep(res))
 	res.BaseStage = base
 	return res
 }

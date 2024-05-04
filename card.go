@@ -9,7 +9,7 @@ type Card struct { // 暂时牌上无需携带标记，不需要额外字段存�
 	Point CardPoint
 	Suit  CardSuit
 	Type  CardType
-	Skill ISkill // 处理目标是否合法与发动最终效果
+	Skill ICheckSkill // 处理目标是否合法与发动最终效果
 	// 冗余参数
 	EquipType EquipType
 	KitType   KitType

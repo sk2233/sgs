@@ -5,6 +5,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -16,6 +18,7 @@ type Game struct {
 	ActionStack *Stack[IAction]
 	SkillHolder *SkillHolder
 	CardManager *CardManager
+	TipManager  *TipManager
 }
 
 func NewGame() *Game {
@@ -26,8 +29,9 @@ func NewGame() *Game {
 		Players:     players,
 		ActionStack: stack,
 		SkillHolder: NewSkillHolder(NewSysInitCardSkill(), NewSysGameStartSkill(),
-			NewSysDrawCardSkill(), NewSysMaxCardSkill()),
+			NewSysDrawCardSkill(), NewSysMaxCardSkill(), NewSysPlayerDistSkill()),
 		CardManager: NewCardManager(),
+		TipManager:  NewTipManager(),
 	}
 	return MainGame
 }
@@ -35,6 +39,7 @@ func NewGame() *Game {
 // 每帧执行的逻辑，error我没用过
 func (g *Game) Update() error {
 	g.ActionStack.Peek().Update() // 栈中不能为空，采用对象手动弹栈方式
+	g.TipManager.Update()
 	return nil
 }
 
@@ -52,6 +57,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		player.Draw(screen)
 	}
 	InvokeDraw(g.ActionStack.Peek(), screen)
+	g.TipManager.Draw(screen) // 提示优先级最高
 }
 
 // 设置画布的大小，入参窗口大小，返回画布大小
@@ -113,6 +119,9 @@ func (g *Game) PushAction(action IAction) {
 
 func (g *Game) PopAction() {
 	g.ActionStack.Pop()
+	if g.ActionStack.Len() > 0 {
+		InvokeTop(g.ActionStack.Peek())
+	}
 }
 
 func (g *Game) DrawCard(num int) []*Card {
@@ -123,16 +132,43 @@ func (g *Game) DiscardCard(cards []*Card) {
 	g.CardManager.DiscardCard(cards)
 }
 
-func (g *Game) TogglePlayer(x, y float32) {
+func (g *Game) TogglePlayer(x, y float32) bool {
 	for _, player := range g.Players {
 		if player.ToggleSelect(x, y) {
-			return
+			return true
 		}
 	}
+	return false
 }
 
 func (g *Game) ResetPlayer() {
 	for _, player := range g.Players {
+		player.CanSelect = true
 		player.Select = false
 	}
+}
+
+func (g *Game) AddTip(format string, args ...any) {
+	g.TipManager.AddTip(fmt.Sprintf(format, args...))
+}
+
+func (g *Game) GetSelectPlayer() []*Player {
+	return Filter(g.Players, func(player *Player) bool {
+		return player.Select
+	})
+}
+
+func (g *Game) CheckPlayer(src *Player, card *Card) {
+	for _, desc := range g.Players {
+		desc.CanSelect = card.Skill.CheckTarget(src, desc, card)
+	}
+}
+
+func (g *Game) GetPlayerIndex(player *Player) int {
+	for i := 0; i < len(g.Players); i++ {
+		if g.Players[i] == player {
+			return i
+		}
+	}
+	return -1
 }
