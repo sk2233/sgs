@@ -55,7 +55,7 @@ func FillRect(screen *ebiten.Image, x, y, w, h float32, clr color.Color) {
 	vector.DrawFilledRect(screen, x, y, w, h, clr, false)
 }
 
-func StoryRect(screen *ebiten.Image, x, y, w, h, sw float32, clr color.Color) {
+func StrokeRect(screen *ebiten.Image, x, y, w, h, sw float32, clr color.Color) {
 	vector.StrokeRect(screen, x, y, w, h, sw, clr, false)
 }
 
@@ -98,6 +98,14 @@ func GetSuitClr(suit CardSuit) color.Color {
 		return ClrFF0000
 	}
 	return Clr000000
+}
+
+func IsRedSuit(suit CardSuit) bool {
+	return suit == SuitHeart || suit == SuitDiamond
+}
+
+func IsBlackSuit(suit CardSuit) bool {
+	return suit == SuitClub || suit == SuitSpade
 }
 
 func GetHpClr(hp, maxHp int) color.Color {
@@ -147,6 +155,16 @@ type IStageDraw interface {
 func InvokeDrawStage(src any, screen *ebiten.Image, player *Player, extra *StageExtra) {
 	if tar, ok := src.(IStageDraw); ok {
 		tar.DrawStage(screen, player, extra)
+	}
+}
+
+type IEffectDraw interface {
+	DrawEffect(screen *ebiten.Image, event *Event)
+}
+
+func InvokeDrawEffect(src any, screen *ebiten.Image, event *Event) {
+	if tar, ok := src.(IEffectDraw); ok {
+		tar.DrawEffect(screen, event)
 	}
 }
 

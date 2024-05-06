@@ -11,17 +11,18 @@ import (
 )
 
 type Player struct {
-	X, Y           float32      // 位置的左上角
-	IsBot          bool         // 是否为机器人
-	Hp, MaxHp      int          // 体力 体力上限
-	General        *General     // 武将信息 主要包含一些元数据信息，需要变化的信息都会扩展到外面
-	Role, MarkRole Role         // 真实身份 表面标记身份
-	Force          Force        // 势力
-	Cards          []*CardUI    // 手牌
-	JudgeCards     []*CardWrap  // 判定牌,可能是转换牌
-	SkillHolder    *SkillHolder // 技能
-	Select         bool         // 是否被选择
-	CanSelect      bool         // 是否可以被选择
+	X, Y           float32              // 位置的左上角
+	IsBot          bool                 // 是否为机器人
+	Hp, MaxHp      int                  // 体力 体力上限
+	General        *General             // 武将信息 主要包含一些元数据信息，需要变化的信息都会扩展到外面
+	Role, MarkRole Role                 // 真实身份 表面标记身份
+	Force          Force                // 势力
+	Cards          []*CardUI            // 手牌
+	JudgeCards     []*CardWrap          // 判定牌,可能是转换牌
+	Equips         map[EquipType]*Equip // 装备
+	SkillHolder    *SkillHolder         // 技能
+	Select         bool                 // 是否被选择
+	CanSelect      bool                 // 是否可以被选择
 }
 
 func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
@@ -33,20 +34,22 @@ func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
 		hp++
 		maxHp++
 	}
-	return &Player{
-		X:           x,
-		Y:           y,
-		IsBot:       isBot,
-		Hp:          hp,
-		MaxHp:       maxHp,
-		General:     general,
-		Role:        role,
-		MarkRole:    markRole,
-		Force:       general.Force,
-		Cards:       make([]*CardUI, 0),
-		SkillHolder: NewSkillHolder(),
-		Select:      false,
+	res := &Player{
+		X:        x,
+		Y:        y,
+		IsBot:    isBot,
+		Hp:       hp,
+		MaxHp:    maxHp,
+		General:  general,
+		Role:     role,
+		MarkRole: markRole,
+		Force:    general.Force,
+		Cards:    make([]*CardUI, 0),
+		Select:   false,
+		Equips:   make(map[EquipType]*Equip),
 	}
+	res.SkillHolder = BuildSkillForPlayer(res)
+	return res
 }
 
 //========================绘制相关=============================
@@ -71,6 +74,9 @@ func (p *Player) drawBot(screen *ebiten.Image) {
 	role := VerticalText(string(p.MarkRole))
 	DrawText(screen, role, p.X+200+20, p.Y, AnchorTopCenter, Font18, ClrFFFFFF)
 	p.drawHp(screen, p.X+200+20, p.Y+50)
+	for _, equip := range p.Equips {
+		equip.Draw(screen)
+	}
 	cardNum := Int2Str(len(p.Cards))
 	DrawText(screen, cardNum, p.X+200+20, p.Y+280-20, AnchorMidCenter, Font18, Clr000000)
 	if p.Select {
@@ -85,7 +91,8 @@ func (p *Player) drawBot(screen *ebiten.Image) {
 //武将头图：宽 200 高 120
 //身份,血条,手牌侧边：宽 40 高 160  实际玩家的位置是相对确定的
 func (p *Player) drawPlayer(screen *ebiten.Image) {
-	FillRect(screen, p.X, p.Y, WinWidth-200-40, 160, Clr0D0D0D)
+	FillRect(screen, p.X, p.Y, 200, 160, Clr553010)
+	FillRect(screen, p.X+200, p.Y, WinWidth-200-40-200, 160, Clr0D0D0D)
 	FillRect(screen, p.X+WinWidth-200-40, p.Y, 200, 160, Clr553010)
 	FillRect(screen, p.X+WinWidth-40, p.Y, 40, 160, Clr362618)
 	DrawText(screen, string(p.Force), p.X+WinWidth-200-40+10, p.Y+10, AnchorTopLeft, Font18, ClrFFFFFF)
@@ -94,6 +101,9 @@ func (p *Player) drawPlayer(screen *ebiten.Image) {
 	role := VerticalText(string(p.Role))
 	DrawText(screen, role, p.X+WinWidth-20, p.Y, AnchorTopCenter, Font18, ClrFFFFFF)
 	p.drawHp(screen, p.X+WinWidth-20, p.Y+50)
+	for _, equip := range p.Equips {
+		equip.Draw(screen)
+	}
 	for _, card := range p.Cards {
 		card.Draw(screen)
 	}
@@ -126,13 +136,18 @@ func (p *Player) DrawCard(num int) {
 		return
 	}
 	cards := MainGame.DrawCard(num)
-	for _, card := range cards {
-		p.Cards = append(p.Cards, NewCardUI(card))
+	p.AddCard(cards...)
+}
+
+func (p *Player) AddCard(cards ...*Card) {
+	if len(cards) == 0 {
+		return
 	}
+	p.Cards = append(p.Cards, Map(cards, NewCardUI)...)
 	p.TidyCard()
 }
 
-func (p *Player) DiscardCard(cards []*Card) {
+func (p *Player) RemoveCard(cards ...*Card) {
 	if len(cards) == 0 {
 		return
 	}
@@ -141,11 +156,28 @@ func (p *Player) DiscardCard(cards []*Card) {
 		return !set.Contain(item.Card)
 	})
 	p.TidyCard()
-	MainGame.DiscardCard(cards)
+}
+
+func (p *Player) RemoveEquip(cards ...*Card) {
+	if len(cards) == 0 {
+		return
+	}
+	set := NewSet[*Card](cards...)
+	for type0, equip := range p.Equips {
+		if set.Contain(equip.Card) {
+			delete(p.Equips, type0)
+		}
+	}
 }
 
 func (p *Player) GetEquipSkillHolders() []*SkillHolder {
-	return make([]*SkillHolder, 0)
+	res := make([]*SkillHolder, 0)
+	for _, equip := range p.Equips {
+		if equip.Enable {
+			res = append(res, equip.SkillHolder)
+		}
+	}
+	return res
 }
 
 //卡牌：宽 110 高 160  范围从 200 ～ 1200-200-40 只有非bot才需要绘制
@@ -166,6 +198,14 @@ func (p *Player) ResetCard() {
 	for i := 0; i < len(p.Cards); i++ {
 		p.Cards[i].CanSelect = true
 		p.Cards[i].Select0 = false
+	}
+}
+
+func (p *Player) DarkLastCard() {
+	for i := 0; i < len(p.Cards); i++ {
+		if !p.Cards[i].Select0 {
+			p.Cards[i].CanSelect = false
+		}
 	}
 }
 
@@ -215,4 +255,41 @@ func (p *Player) CheckCard(extra *StepExtra) {
 	for _, card := range p.Cards {
 		card.CanSelect = card.Card.Skill.CheckUse(p, card.Card, extra)
 	}
+}
+
+func (p *Player) CheckCardByWrapFilter(filter CardWrapFilter) {
+	for _, card := range p.Cards {
+		card.CanSelect = filter(NewSimpleCardWrap(card.Card))
+	}
+}
+
+func (p *Player) CheckCardByFilter(filter CardFilter) {
+	for _, card := range p.Cards {
+		card.CanSelect = filter(card.Card)
+	}
+}
+
+func (p *Player) ChangeHp(val int) bool {
+	p.Hp += val
+	if p.Hp > p.MaxHp {
+		p.Hp = p.MaxHp
+	}
+	return p.Hp <= 0
+}
+
+//装备栏：宽 200 高 40
+func (p *Player) AddEquip(card *Card) *Card {
+	old := p.Equips[card.EquipType]
+	equip := NewEquip(card, p)
+	y := p.Y + 40*EquipIndexes[card.EquipType]
+	if p.IsBot {
+		y += 120
+	}
+	equip.X, equip.Y = p.X, y
+	p.Equips[card.EquipType] = equip
+
+	if old == nil {
+		return nil
+	}
+	return old.Card
 }

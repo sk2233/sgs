@@ -104,18 +104,7 @@ func (p *PlayStage) TopStage(player *Player, extra *StageExtra) {
 
 // 绘制区域 240 ~ 1200-240 y底部是280*2 绘制「出牌」「取消」
 func (p *PlayStage) InitStage(player *Player, extra *StageExtra) {
-	p.Buttons = []*Button{NewButton(TextPlayCard), NewButton(TextCancel)}
-	last := float32(WinWidth - 240 - 240)
-	for _, button := range p.Buttons {
-		last -= button.W
-	}
-	offset := last / float32(len(p.Buttons)+1) // 计算偏移 若是技能太多，offset会变成负数，按钮会叠在一起
-	x := 240 + offset
-	y := 280 + 280 - p.Buttons[0].H - 20
-	for _, button := range p.Buttons {
-		button.X, button.Y = x, y
-		x += offset + button.W
-	}
+	p.Buttons = NewButtons(TextPlayCard, TextCancel)
 	player.ResetCard()
 	player.CheckCard(p.Extra)
 }
@@ -161,18 +150,7 @@ type DiscardStage struct {
 
 func (d *DiscardStage) InitStage(player *Player, extra *StageExtra) {
 	// 只有「确定」与「取消」
-	d.Buttons = []*Button{NewButton(TextConfirm), NewButton(TextCancel)}
-	last := float32(WinWidth - 240 - 240)
-	for _, button := range d.Buttons {
-		last -= button.W
-	}
-	offset := last / float32(len(d.Buttons)+1) // 计算偏移
-	x := 240 + offset
-	y := 280 + 280 - d.Buttons[0].H - 20
-	for _, button := range d.Buttons {
-		button.X, button.Y = x, y
-		x += offset + button.W
-	}
+	d.Buttons = NewButtons(TextConfirm, TextCancel)
 }
 
 func (d *DiscardStage) DrawStage(screen *ebiten.Image, player *Player, extra *StageExtra) {

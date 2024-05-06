@@ -8,8 +8,10 @@ import "fmt"
 
 type General struct {
 	Name      string
-	Hp, MaxHp int   // 元数据不能改的
-	Force     Force // 势力
+	Hp, MaxHp int      // 元数据不能改的
+	Force     Force    // 势力
+	Skills    []string // 技能组
+	Gender    Gender
 }
 
 var (
@@ -19,30 +21,35 @@ var (
 
 func InitGeneral() {
 	generals := []*General{{
-		Name:  "刘备",
-		Hp:    4,
-		MaxHp: 4,
-		Force: ForceShu,
+		Name:   "刘备",
+		Hp:     4,
+		MaxHp:  4,
+		Force:  ForceShu,
+		Gender: GenderMan,
 	}, {
-		Name:  "孙尚香",
-		Hp:    3,
-		MaxHp: 3,
-		Force: ForceWu,
+		Name:   "孙尚香",
+		Hp:     3,
+		MaxHp:  3,
+		Force:  ForceWu,
+		Gender: GenderWoman,
 	}, {
-		Name:  "华雄",
-		Hp:    6,
-		MaxHp: 6,
-		Force: ForceQun,
+		Name:   "华雄",
+		Hp:     6,
+		MaxHp:  6,
+		Force:  ForceQun,
+		Gender: GenderMan,
 	}, {
-		Name:  "张辽",
-		Hp:    4,
-		MaxHp: 4,
-		Force: ForceWei,
+		Name:   "张辽",
+		Hp:     3,
+		MaxHp:  4,
+		Force:  ForceWei,
+		Gender: GenderMan,
 	}, {
-		Name:  "孙权",
-		Hp:    4,
-		MaxHp: 4,
-		Force: ForceWu,
+		Name:   "孙权",
+		Hp:     4,
+		MaxHp:  4,
+		Force:  ForceWu,
+		Gender: GenderMan,
 	}}
 	for _, general := range generals {
 		generalMap[general.Name] = general
@@ -64,4 +71,12 @@ func GetGeneralN(num int) []*General {
 		res = append(res, GetGeneral(generalNames[i]))
 	}
 	return res
+}
+
+func BuildSkillForPlayer(player *Player) *SkillHolder {
+	if player.IsBot {
+		return NewSkillHolder(NewBotAskCardSkill(player))
+	} else {
+		return NewSkillHolder(NewPlayerAskCardSkill(player))
+	}
 }

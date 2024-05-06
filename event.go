@@ -9,10 +9,22 @@ type Event struct {
 	Abort bool
 	// 泛用参数
 	Src        *Player   // 来源最多是一个玩家
-	Desc       []*Player // 目标可以是多个
+	Descs      []*Player // 目标可以是多个
+	Desc       *Player   // 单个目标也是有可能的
 	Card       *CardWrap // 在使用的卡牌
+	Resp       *CardWrap // 响应的牌
+	WrapFilter CardWrapFilter
+	Resps      []*Card // 要牌，要到的结果
+	AskNum     int
+	WithEquip  bool
+	Filter     CardFilter
 	StageExtra *StageExtra
 	StepExtra  *StepExtra
+	HurtVal    int // 伤害值
+	Event      *Event
+	Force      bool
+	ShaHit     bool
+	Invalid    bool
 }
 
 type Condition struct {

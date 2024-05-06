@@ -19,6 +19,7 @@ type Game struct {
 	SkillHolder *SkillHolder
 	CardManager *CardManager
 	TipManager  *TipManager
+	Desktop     *Desktop
 }
 
 func NewGame() *Game {
@@ -29,9 +30,10 @@ func NewGame() *Game {
 		Players:     players,
 		ActionStack: stack,
 		SkillHolder: NewSkillHolder(NewSysInitCardSkill(), NewSysGameStartSkill(),
-			NewSysDrawCardSkill(), NewSysMaxCardSkill(), NewSysPlayerDistSkill()),
+			NewSysDrawCardSkill(), NewSysMaxCardSkill(), NewSysPlayerDistSkill(), NewSysRespCardSkill()),
 		CardManager: NewCardManager(),
 		TipManager:  NewTipManager(),
+		Desktop:     NewDesktop(),
 	}
 	return MainGame
 }
@@ -56,6 +58,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if player != nil { // 玩家留到最后绘制，防止被其他 bot 遮挡
 		player.Draw(screen)
 	}
+	g.Desktop.Draw(screen)
+	g.CardManager.Draw(screen)
 	InvokeDraw(g.ActionStack.Peek(), screen)
 	g.TipManager.Draw(screen) // 提示优先级最高
 }
@@ -77,7 +81,7 @@ func (g *Game) ComputeCondition(condition *Condition) *Condition {
 
 func (g *Game) TriggerEvent(event *Event) {
 	holders := g.GetAllSortSkillHolder(event.Src)
-	effects := make([]*Effect, 0)
+	effects := make([]IEffect, 0)
 	for _, holder := range holders {
 		effects = append(effects, holder.CreateEffects(event)...)
 	}
@@ -146,6 +150,30 @@ func (g *Game) ResetPlayer() {
 		player.CanSelect = true
 		player.Select = false
 	}
+}
+
+func (g *Game) AddToDesktop(cards ...*Card) {
+	g.Desktop.AddCard(Map(cards, NewSimpleCardWrap))
+}
+
+func (g *Game) AddToDesktopRaw(cards ...*CardWrap) {
+	g.Desktop.AddCard(cards)
+}
+
+func (g *Game) DiscardFromDesktop(cards ...*Card) {
+	g.Desktop.DiscardCard(Map(cards, NewSimpleCardWrap))
+}
+
+func (g *Game) DiscardFromDesktopRaw(cards ...*CardWrap) {
+	g.Desktop.DiscardCard(cards)
+}
+
+func (g *Game) RemoveFromDesktop(cards ...*Card) {
+	g.Desktop.RemoveCard(Map(cards, NewSimpleCardWrap))
+}
+
+func (g *Game) RemoveFromDesktopRaw(cards ...*CardWrap) {
+	g.Desktop.RemoveCard(cards)
 }
 
 func (g *Game) AddTip(format string, args ...any) {

@@ -22,6 +22,7 @@ var (
 	ClrAAD745   = Hex2Clr("AAD745") // hp 绿
 	Clr348EBB   = Hex2Clr("348EBB") // 按钮背景色
 	ClrA66F3F   = Hex2Clr("A66F3F") // 按钮描边色
+	Clr4B403F   = Hex2Clr("4B403F")
 )
 
 var (
@@ -36,6 +37,9 @@ const (
 	AnchorTopLeft   Anchor = 0 + 0i
 	AnchorTopCenter Anchor = 0.5 + 0i
 	AnchorBtmCenter Anchor = 0.5 + 1i
+	AnchorTopRight  Anchor = 1 + 0i
+	AnchorMidLeft   Anchor = 0 + 0.5i
+	AnchorMidRight  Anchor = 1 + 0.5i
 )
 
 const (
@@ -69,13 +73,21 @@ const (
 type EventType string
 
 const (
-	EventPlayerStage  EventType = "EventPlayerStage"
-	EventGameStart    EventType = "EventGameStart"    // 游戏开始事件，有些武将技能在这里发动
-	EventStagePrepare EventType = "EventStagePrepare" // 准备阶段事件
-	EventStageEnd     EventType = "EventStageEnd"     // 回合结束阶段事件
-	EventJudgeCard    EventType = "EventJudgeCard"    // 判定事件发生后已经拿到判定牌了，但是还没有生效
-	EventJudgeEnd     EventType = "EventJudgeEnd"     // 判定牌生效后
-	EventUseCard      EventType = "EventUseCard"      // 调用卡牌效果
+	EventPlayerStage   EventType = "EventPlayerStage"
+	EventGameStart     EventType = "EventGameStart"     // 游戏开始事件，有些武将技能在这里发动
+	EventStagePrepare  EventType = "EventStagePrepare"  // 准备阶段事件
+	EventStageEnd      EventType = "EventStageEnd"      // 回合结束阶段事件
+	EventJudgeCard     EventType = "EventJudgeCard"     // 判定事件发生后已经拿到判定牌了，但是还没有生效
+	EventJudgeEnd      EventType = "EventJudgeEnd"      // 判定牌生效后
+	EventUseCard       EventType = "EventUseCard"       // 调用卡牌效果
+	EventCardPoint     EventType = "EventCardPoint"     // 使用卡牌指定时
+	EventRespCard      EventType = "EventRespCard"      // 要求响应某些牌，是专门响应牌的，可以使用各种虚拟牌等且只要一张
+	EventAskCard       EventType = "EventAskCard"       // 直接要牌的，不能使用转换牌，可以要多张
+	EventShaHit        EventType = "EventShaHit"        // 杀命中事件
+	EventRespCardAfter EventType = "EventRespCardAfter" // 对方响应什么牌后
+	EventCardAfter     EventType = "EventCardAfter"     // 卡牌结算后
+	EventPlayerHurt    EventType = "EventPlayerHurt"    // 玩家受到攻击
+	EventPlayerDying   EventType = "EventPlayerDying"   // 玩家濒死
 )
 
 type ConditionType string
@@ -85,7 +97,7 @@ const (
 	ConditionDrawCardNum ConditionType = "ConditionDrawCardNum" // 摸牌阶段摸牌数量
 	ConditionMaxCard     ConditionType = "ConditionMaxCard"     // 计算手牌上限
 	ConditionGetDist     ConditionType = "ConditionGetDist"     // 计算从src到desc的距离
-	ConditionUseCard     ConditionType = "ConditionUseShaAll"   // 计算使用牌的一些总的条件，不针对具体目标
+	ConditionUseCard     ConditionType = "ConditionUseCard"     // 计算使用牌的一些总的条件，不针对具体目标
 	ConditionCardMaxDesc ConditionType = "ConditionCardMaxDesc" // 卡牌最多可指定的目标数目
 	ConditionUseSha      ConditionType = "ConditionUseSha"      // 计算使用杀的一些条件，针对具体目标
 )
@@ -115,7 +127,7 @@ type CardPoint int
 func (c CardPoint) String() string {
 	switch c {
 	case PointNone:
-		return " "
+		return "无"
 	case PointA:
 		return "A"
 	case Point2:
@@ -169,7 +181,7 @@ type CardSuit int
 func (c CardSuit) String() string {
 	switch c {
 	case SuitNone:
-		return " "
+		return "无"
 	case SuitHeart:
 		return "红"
 	case SuitSpade:
@@ -232,4 +244,24 @@ const (
 const (
 	MaxTipOffset   = WinHeight / 4
 	MinTipInterval = 25
+)
+
+const (
+	BotTimer = 30 // 单位是帧
+)
+
+var (
+	EquipIndexes = map[EquipType]float32{
+		EquipWeapon:  0,
+		EquipArmor:   1,
+		EquipAttack:  2,
+		EquipDefense: 3,
+	}
+)
+
+type Gender string
+
+const (
+	GenderMan   Gender = "男"
+	GenderWoman Gender = "女"
 )

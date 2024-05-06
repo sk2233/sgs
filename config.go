@@ -39,51 +39,51 @@ func LoadCard() []*Card {
 	// 桃
 	for i := 0; i < 8; i++ {
 		res = append(res, &Card{Name: "桃", Point: CardPoint(rand.Intn(13) + 1),
-			Suit: CardSuit(rand.Intn(4) + 1), Type: CardBasic, Skill: NewPeachSkill()})
+			Suit: CardSuit(rand.Intn(4) + 1), Type: CardBasic, Skill: NewTaoSkill()})
 	}
 	// 装备牌
 	// 武器
-	//for i := 0; i < 2; i++ {
-	//	res = append(res, &Card{Name: "诸葛连弩", Point: CardPoint(rand.Intn(13) + 1),
-	//		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//}
-	//res = append(res, &Card{Name: "丈八蛇矛", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//res = append(res, &Card{Name: "贯石斧", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//res = append(res, &Card{Name: "方天画戟", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//res = append(res, &Card{Name: "青虹剑", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//res = append(res, &Card{Name: "麒麟弓", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//res = append(res, &Card{Name: "雌雄双股剑", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//res = append(res, &Card{Name: "青龙偃月刀", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//res = append(res, &Card{Name: "寒冰剑", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon})
-	//// 防具
-	//for i := 0; i < 2; i++ {
-	//	res = append(res, &Card{Name: "八卦阵", Point: CardPoint(rand.Intn(13) + 1),
-	//		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipArmor})
-	//}
-	//res = append(res, &Card{Name: "仁王盾", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipArmor})
-	//// 进攻马
-	//res = append(res, &Card{Name: "赤兔", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipAttack})
-	//res = append(res, &Card{Name: "大宛", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipAttack})
-	//res = append(res, &Card{Name: "紫骍", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipAttack})
-	//// 防御马
-	//res = append(res, &Card{Name: "爪黄飞电", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipDefense})
-	//res = append(res, &Card{Name: "的卢", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipDefense})
-	//res = append(res, &Card{Name: "绝影", Point: CardPoint(rand.Intn(13) + 1),
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipDefense})
+	for i := 0; i < 2; i++ {
+		res = append(res, &Card{Name: "诸葛连弩", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "诸葛连弩1",
+			Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	}
+	res = append(res, &Card{Name: "丈八蛇矛", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "丈八蛇矛3",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "贯石斧", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "贯石斧3",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "方天画戟", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "方天画戟4",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "青虹剑", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "青虹剑2",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "麒麟弓", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "麒麟弓5",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "雌雄双股剑", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "雌雄双股剑2",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "青龙偃月刀", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "青龙偃月刀3",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "寒冰剑", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "寒冰剑2",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	// 防具
+	for i := 0; i < 2; i++ {
+		res = append(res, &Card{Name: "八卦阵", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "八卦阵",
+			Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipArmor, Skill: NewEquipSkill()})
+	}
+	res = append(res, &Card{Name: "仁王盾", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "仁王盾",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipArmor, Skill: NewEquipSkill()})
+	// 进攻马
+	res = append(res, &Card{Name: "赤兔", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "赤兔-1",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipAttack, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "大宛", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "大宛-1",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipAttack, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "紫骍", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "紫骍-1",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipAttack, Skill: NewEquipSkill()})
+	// 防御马
+	res = append(res, &Card{Name: "爪黄飞电", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "爪黄飞电+1",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipDefense, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "的卢", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "的卢+1",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipDefense, Skill: NewEquipSkill()})
+	res = append(res, &Card{Name: "绝影", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "绝影+1",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipDefense, Skill: NewEquipSkill()})
 	//// 锦囊牌
 	//// 即时
 	//for i := 0; i < 4; i++ {
