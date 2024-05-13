@@ -4,8 +4,6 @@
 */
 package main
 
-import "math/rand"
-
 type StepExtra struct {
 	Index     int // 步骤进行到那里了
 	JudgeCard *CardWrap
@@ -69,10 +67,10 @@ func (d *DrawStageMainStep) Update(event *Event, extra *StepExtra) {
 	condition := MainGame.ComputeCondition(&Condition{Type: ConditionDrawCardNum, Src: event.Src})
 	event.Src.DrawCard(condition.CardNum)
 	// TODO TEST
-	event.Src.AddCard(&Card{Name: "乐不思蜀", Point: CardPoint(rand.Intn(13) + 1), Alias: "乐",
-		Suit: CardSuit(rand.Intn(4) + 1), Type: CardKit, KitType: KitDelay, Skill: NewDelayKitSkill(false)})
-	event.Src.AddCard(&Card{Name: "顺手牵羊", Point: CardPoint(rand.Intn(13) + 1),
-		Suit: CardSuit(rand.Intn(4) + 1), Type: CardKit, KitType: KitInstant, Skill: NewShunShouQianYangSkill()})
+	//event.Src.AddCard(&Card{Name: "无懈可击", Point: CardPoint(rand.Intn(13) + 1),
+	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardKit, KitType: KitInstant, Skill: NewWuXieKeJiSkill()})
+	//event.Src.AddCard(&Card{Name: "顺手牵羊", Point: CardPoint(rand.Intn(13) + 1),
+	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardKit, KitType: KitInstant, Skill: NewShunShouQianYangSkill()})
 	extra.Index = MaxIndex
 }
 
