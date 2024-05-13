@@ -227,7 +227,8 @@ func (p *Player) DarkLastCard() {
 }
 
 func (p *Player) ToggleCard(x, y float32) bool {
-	for _, card := range p.Cards {
+	for i := len(p.Cards) - 1; i >= 0; i-- {
+		card := p.Cards[i]
 		if card.Click(x, y) {
 			card.Toggle()
 			return true

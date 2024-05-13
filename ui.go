@@ -224,7 +224,8 @@ func (c *AllCard) GetSelectCard() []*Card {
 }
 
 func (c *AllCard) ToggleCard(x, y float32) bool {
-	for _, item := range c.Alls {
+	for i := len(c.Alls) - 1; i >= 0; i-- {
+		item := c.Alls[i]
 		if item.Click(x, y) {
 			item.Toggle()
 			return true
@@ -312,7 +313,8 @@ func (c *ChooseCard) Reset() {
 }
 
 func (c *ChooseCard) ToggleCard(x float32, y float32) bool {
-	for _, card := range c.Cards {
+	for i := len(c.Cards) - 1; i >= 0; i-- {
+		card := c.Cards[i]
 		if card.Click(x, y) {
 			card.Toggle()
 			return true

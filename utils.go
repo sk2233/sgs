@@ -240,6 +240,14 @@ func SubSlice[T comparable](all, sub []T) []T {
 	return res
 }
 
+func ReverseSlice[T any](data []T) {
+	l, r := 0, len(data)-1
+	for l < r {
+		data[l], data[r] = data[r], data[l]
+		l, r = l+1, r-1
+	}
+}
+
 //===================math==================
 
 func Abs[T int](val T) T {

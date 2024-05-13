@@ -151,7 +151,8 @@ func (p *PlayStageCardStep) Update(event *Event, extra *StepExtra) {
 	}
 	player := event.Src
 	// 判断点击手牌
-	for _, card := range player.Cards {
+	for i := len(player.Cards) - 1; i >= 0; i-- {
+		card := player.Cards[i]
 		if card.Click(x, y) {
 			card.Select()
 			extra.Card = card
