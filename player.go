@@ -18,7 +18,7 @@ type Player struct {
 	Role, MarkRole Role                 // 真实身份 表面标记身份
 	Force          Force                // 势力
 	Cards          []*CardUI            // 手牌
-	JudgeCards     []*CardWrap          // 判定牌,可能是转换牌
+	DelayKits      []*DelayKit          // 延时锦囊,可能是转换牌
 	Equips         map[EquipType]*Equip // 装备
 	SkillHolder    *SkillHolder         // 技能
 	Select         bool                 // 是否被选择
@@ -77,6 +77,9 @@ func (p *Player) drawBot(screen *ebiten.Image) {
 	for _, equip := range p.Equips {
 		equip.Draw(screen)
 	}
+	for _, delayKit := range p.DelayKits {
+		delayKit.Draw(screen)
+	}
 	cardNum := Int2Str(len(p.Cards))
 	DrawText(screen, cardNum, p.X+200+20, p.Y+280-20, AnchorMidCenter, Font18, Clr000000)
 	if p.Select {
@@ -103,6 +106,9 @@ func (p *Player) drawPlayer(screen *ebiten.Image) {
 	p.drawHp(screen, p.X+WinWidth-20, p.Y+50)
 	for _, equip := range p.Equips {
 		equip.Draw(screen)
+	}
+	for _, delayKit := range p.DelayKits {
+		delayKit.Draw(screen)
 	}
 	for _, card := range p.Cards {
 		card.Draw(screen)
@@ -144,7 +150,7 @@ func (p *Player) AddCard(cards ...*Card) {
 		return
 	}
 	p.Cards = append(p.Cards, Map(cards, NewCardUI)...)
-	p.TidyCard()
+	p.TidyHandCard()
 }
 
 func (p *Player) RemoveCard(cards ...*Card) {
@@ -155,7 +161,7 @@ func (p *Player) RemoveCard(cards ...*Card) {
 	p.Cards = Filter(p.Cards, func(item *CardUI) bool {
 		return !set.Contain(item.Card)
 	})
-	p.TidyCard()
+	p.TidyHandCard()
 }
 
 func (p *Player) RemoveEquip(cards ...*Card) {
@@ -170,6 +176,17 @@ func (p *Player) RemoveEquip(cards ...*Card) {
 	}
 }
 
+func (p *Player) RemoveDelayKit(cards ...*Card) {
+	if len(cards) == 0 {
+		return
+	}
+	set := NewSet[*Card](cards...)
+	p.DelayKits = Filter(p.DelayKits, func(item *DelayKit) bool {
+		return !set.Contain(item.Card.Desc)
+	})
+	p.TidyDelayKitCard()
+}
+
 func (p *Player) GetEquipSkillHolders() []*SkillHolder {
 	res := make([]*SkillHolder, 0)
 	for _, equip := range p.Equips {
@@ -181,16 +198,16 @@ func (p *Player) GetEquipSkillHolders() []*SkillHolder {
 }
 
 //卡牌：宽 110 高 160  范围从 200 ～ 1200-200-40 只有非bot才需要绘制
-func (p *Player) TidyCard() {
+func (p *Player) TidyHandCard() {
 	if p.IsBot {
 		return
 	}
-	offset := 110
+	offset := float32(110)
 	if len(p.Cards)*110 > WinWidth-200-200-40 {
-		offset = (WinWidth - 200 - 200 - 40 - 110) / (len(p.Cards) - 1)
+		offset = (WinWidth - 200 - 200 - 40 - 110) / float32(len(p.Cards)-1)
 	}
 	for i := 0; i < len(p.Cards); i++ {
-		p.Cards[i].X, p.Cards[i].Y = float32(200+i*offset), p.Y
+		p.Cards[i].X, p.Cards[i].Y = 200+float32(i)*offset, p.Y
 	}
 }
 
@@ -287,9 +304,45 @@ func (p *Player) AddEquip(card *Card) *Card {
 	}
 	equip.X, equip.Y = p.X, y
 	p.Equips[card.EquipType] = equip
-
 	if old == nil {
 		return nil
 	}
 	return old.Card
+}
+
+func (p *Player) AddDelayKit(card *CardWrap) {
+	p.DelayKits = append(p.DelayKits, NewDelayKit(card))
+	p.TidyDelayKitCard()
+}
+
+func (p *Player) TidyDelayKitCard() {
+	x := p.X + WinWidth - 200 - 40 + 50
+	if p.IsBot {
+		x = p.X + 50
+	}
+	y := p.Y + 10
+	for _, delayKit := range p.DelayKits {
+		delayKit.X, delayKit.Y = x, y
+		x += 40
+	}
+}
+
+func (p *Player) GetHandCards() []*Card {
+	return Map(p.Cards, func(item *CardUI) *Card {
+		return item.Card
+	})
+}
+
+func (p *Player) GetEquipCards() []*Card {
+	res := make([]*Card, 0)
+	for _, equip := range p.Equips {
+		res = append(res, equip.Card)
+	}
+	return res
+}
+
+func (p *Player) GetDelayKitCards() []*Card {
+	return Map(p.DelayKits, func(item *DelayKit) *Card {
+		return item.Card.Desc
+	})
 }

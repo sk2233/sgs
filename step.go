@@ -4,6 +4,8 @@
 */
 package main
 
+import "math/rand"
+
 type StepExtra struct {
 	Index     int // 步骤进行到那里了
 	JudgeCard *CardWrap
@@ -67,26 +69,11 @@ func (d *DrawStageMainStep) Update(event *Event, extra *StepExtra) {
 	condition := MainGame.ComputeCondition(&Condition{Type: ConditionDrawCardNum, Src: event.Src})
 	event.Src.DrawCard(condition.CardNum)
 	// TODO TEST
-	//event.Src.AddCard(&Card{Name: "寒冰剑", Point: CardPoint(rand.Intn(13) + 1), EquipAlias: "寒冰剑2",
-	//	Suit: CardSuit(rand.Intn(4) + 1), Type: CardEquip, EquipType: EquipWeapon, Skill: NewEquipSkill()})
+	event.Src.AddCard(&Card{Name: "乐不思蜀", Point: CardPoint(rand.Intn(13) + 1), Alias: "乐",
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardKit, KitType: KitDelay, Skill: NewDelayKitSkill(false)})
+	event.Src.AddCard(&Card{Name: "顺手牵羊", Point: CardPoint(rand.Intn(13) + 1),
+		Suit: CardSuit(rand.Intn(4) + 1), Type: CardKit, KitType: KitInstant, Skill: NewShunShouQianYangSkill()})
 	extra.Index = MaxIndex
-}
-
-//======================JudgeStageCheckStep判定阶段检查步骤=======================
-
-type JudgeStageCheckStep struct {
-}
-
-func NewJudgeStageCheckStep() *JudgeStageCheckStep {
-	return &JudgeStageCheckStep{}
-}
-
-func (j *JudgeStageCheckStep) Update(event *Event, extra *StepExtra) {
-	if len(event.Src.JudgeCards) > 0 { // 这时判定牌应该放到处理区了 TODO
-		extra.Index++ // 还有判定牌接着判定
-	} else {
-		extra.Index = MaxIndex // 没有了结束
-	}
 }
 
 //============================JudgeStageExecuteStep判定阶段判定牌生效完清理步骤=================================
@@ -99,16 +86,18 @@ func NewJudgeStageExecuteStep() *JudgeStageExecuteStep {
 }
 
 func (j *JudgeStageExecuteStep) Update(event *Event, extra *StepExtra) { // 普通判定也有这也这一步骤，但是判定阶段需要构成循环
-	extra.Index = 0
-	src := event.Src
-	card := src.JudgeCards[0]
-	src.JudgeCards = src.JudgeCards[1:]
-	MainGame.PushAction(NewEffectGroupBySkill(&Event{ // 延时锦囊牌的牌面效果与装备牌类似，都是添加一个新对象 TODO 这里是有问题的
-		Type:      EventUseCard,
-		Src:       src,   // 这里相当于延时技能自己成来源了
-		StepExtra: extra, // 主要为了传递判定牌
-	}, card.Desc.Skill)) // TODO 判定这里有问题不能直接丢弃
-	MainGame.DiscardCard(append(card.Src, extra.JudgeCard.Src...)) // 丢弃延时锦囊牌与判定牌，若是他们还有实体牌的话
+	if len(event.Src.DelayKits) > 0 {
+		delayKit := event.Src.DelayKits[0]
+		event.Src.RemoveDelayKit(delayKit.Card.Desc)
+		// 以当前目标为角色发动效果即可
+		temp := &Event{Type: EventUseCard, Src: event.Src, Desc: event.Src, Card: delayKit.Card,
+			StepExtra: extra, StageExtra: event.StageExtra}
+		effect := delayKit.Skill.CreateEffect(temp)
+		MainGame.PushAction(NewEffectGroup(temp, []IEffect{effect}))
+		MainGame.AddToDesktopRaw(delayKit.Card)
+	} else { // 处理完了
+		extra.Index = MaxIndex
+	}
 }
 
 //===========================JudgeCardJudgeStep判定牌判定Step===============================
@@ -1017,6 +1006,7 @@ func (h *HanBingJianCheckStep) Update(event *Event, extra *StepExtra) {
 	event.ShaHit = false // 免伤
 	event.Desc.RemoveCard(extra.Cards...)
 	event.Desc.RemoveEquip(extra.Cards...)
+	event.Desc.RemoveDelayKit(extra.Cards...)
 	MainGame.AddToDesktop(extra.Cards...)
 	MainGame.DiscardFromDesktop(extra.Cards...)
 	extra.Index = MaxIndex
@@ -1061,4 +1051,622 @@ func (r *RenWangDunCheckStep) Update(event *Event, extra *StepExtra) {
 
 func NewRenWangDunCheckStep() *RenWangDunCheckStep {
 	return &RenWangDunCheckStep{}
+}
+
+//====================LoopTriggerUseKitStep轮流触发响应无懈可击======================
+
+type LoopTriggerUseKitStep struct {
+	Players []*Player // 从事件源开始的列表
+	Index   int
+}
+
+func (c *LoopTriggerUseKitStep) Update(event *Event, extra *StepExtra) {
+	if c.Index < len(c.Players) {
+		extra.Result = &Event{Type: EventRespCard, Src: event.Src, Card: event.Card, Desc: c.Players[c.Index],
+			WrapFilter: c.WuXieKeJiFilter}
+		MainGame.TriggerEvent(extra.Result)
+		c.Index++
+		extra.Index++ // 查看要牌的结果
+	} else {
+		c.Index = 0      // 复原属性，可能会重用的
+		extra.Index += 2 // 结束要牌
+	}
+	MainGame.TriggerEvent(&Event{})
+}
+
+func (c *LoopTriggerUseKitStep) WuXieKeJiFilter(card *CardWrap) bool {
+	return card.Desc.Name == "无懈可击"
+}
+
+func NewLoopTriggerUseKitStep(src *Player) *LoopTriggerUseKitStep {
+	return &LoopTriggerUseKitStep{Players: MainGame.GetSortPlayer(src), Index: 0}
+}
+
+//================CheckRespKitStep=================
+
+type CheckRespKitStep struct {
+}
+
+func (c *CheckRespKitStep) Update(event *Event, extra *StepExtra) {
+	resp := extra.Result.Resp
+	if resp != nil { // 有响应，触发对应效果
+		// 这里使用的牌的目标是一张牌，暂时没有传递
+		temp := &Event{Type: EventUseCard, Src: extra.Desc, Card: resp, Event: event}
+		// 无懈可击比较特殊，虽然是响应但是还是要触发效果，严格来说这个效果并不是无懈可击的
+		// 而是这个效果放在无懈可击上比较方便也可以独立存在，在这里再触发一下，要保证效果不会为空
+		effect := resp.Desc.Skill.CreateEffect(temp)
+		MainGame.PushAction(NewEffectGroup(temp, []IEffect{effect}))
+		extra.Index++ // 只要有一人响应就可以提前跳出循环了
+	} else {
+		extra.Index-- // 当前用户没有响应，下一个用户
+	}
+}
+
+func NewCheckRespKitStep() *CheckRespKitStep {
+	return &CheckRespKitStep{}
+}
+
+//==================WuZhongShengYouStep无中生有核心效果=====================
+
+type WuZhongShengYouStep struct {
+}
+
+func (w *WuZhongShengYouStep) Update(event *Event, extra *StepExtra) {
+	if !event.Invalid {
+		event.Src.DrawCard(2)
+	}
+	MainGame.DiscardFromDesktopRaw(event.Card) // 结算完毕
+	extra.Index = MaxIndex
+}
+
+func NewWuZhongShengYouStep() *WuZhongShengYouStep {
+	return &WuZhongShengYouStep{}
+}
+
+//=======================WuXieKeJiStep========================
+
+type WuXieKeJiStep struct {
+}
+
+func NewWuXieKeJiStep() *WuXieKeJiStep {
+	return &WuXieKeJiStep{}
+}
+
+func (w *WuXieKeJiStep) Update(event *Event, extra *StepExtra) {
+	if !event.Invalid { // 自己没有失效就让上一张牌失效  这里是响应已经弃了
+		event.Event.Invalid = true
+	}
+	extra.Index = MaxIndex
+}
+
+//=====================CardCheckInvalidStep通用判断是否是否生效=======================
+
+type CardCheckInvalidStep struct {
+}
+
+func (k *CardCheckInvalidStep) Update(event *Event, extra *StepExtra) {
+	if event.Invalid { // 违规直接结束
+		MainGame.DiscardFromDesktopRaw(event.Card) // 结算完毕
+		extra.Index = MaxIndex
+	} else { // 否则下一步
+		extra.Index++
+	}
+}
+
+func NewCardCheckInvalidStep() *CardCheckInvalidStep {
+	return &CardCheckInvalidStep{}
+}
+
+//================GuoHeChaiQiaoStep====================
+
+type GuoHeChaiQiaoStep struct {
+}
+
+func (g *GuoHeChaiQiaoStep) Update(event *Event, extra *StepExtra) {
+	event.Descs[0].RemoveCard(extra.Cards...)
+	event.Descs[0].RemoveEquip(extra.Cards...)
+	event.Descs[0].RemoveDelayKit(extra.Cards...)
+	MainGame.AddToDesktop(extra.Cards...)
+	MainGame.DiscardFromDesktop(extra.Cards...)
+	MainGame.DiscardFromDesktopRaw(event.Card) // 结算完毕
+	extra.Index = MaxIndex
+}
+
+func NewGuoHeChaiQiaoStep() *GuoHeChaiQiaoStep {
+	return &GuoHeChaiQiaoStep{}
+}
+
+//===================ShunShouQianYangStep======================
+
+type ShunShouQianYangStep struct {
+}
+
+func (s *ShunShouQianYangStep) Update(event *Event, extra *StepExtra) {
+	event.Descs[0].RemoveCard(extra.Cards...)
+	event.Descs[0].RemoveEquip(extra.Cards...)
+	event.Descs[0].RemoveDelayKit(extra.Cards...)
+	event.Src.AddCard(extra.Cards...)
+	MainGame.DiscardFromDesktopRaw(event.Card) // 结算完毕
+	extra.Index = MaxIndex
+}
+
+func NewShunShouQianYangStep() *ShunShouQianYangStep {
+	return &ShunShouQianYangStep{}
+}
+
+//======================JieDaoShaRenAskStep======================
+
+type JieDaoShaRenAskStep struct {
+}
+
+func (j *JieDaoShaRenAskStep) Update(event *Event, extra *StepExtra) {
+	if event.Invalid {
+		MainGame.DiscardFromDesktopRaw(event.Card) // 结算完毕
+		extra.Index = MaxIndex
+	} else {
+		extra.Result = &Event{Type: EventAskCard, Src: event.Src, Desc: event.Descs[0], AskNum: 1, Filter: j.ShaFilter}
+		MainGame.TriggerEvent(extra.Result)
+		extra.Index++
+	}
+}
+
+func (j *JieDaoShaRenAskStep) ShaFilter(card *Card) bool {
+	return card.Name == "杀" // 这里应该可以要虚拟牌的，至少借刀杀人是可以的
+}
+
+func NewJieDaoShaRenAskStep() *JieDaoShaRenAskStep {
+	return &JieDaoShaRenAskStep{}
+}
+
+//===============JieDaoShaRenCheckStep=================
+
+type JieDaoShaRenCheckStep struct {
+}
+
+func NewJieDaoShaRenCheckStep() *JieDaoShaRenCheckStep {
+	return &JieDaoShaRenCheckStep{}
+}
+
+func (j *JieDaoShaRenCheckStep) Update(event *Event, extra *StepExtra) {
+	first := event.Descs[0]
+	last := event.Descs[1]
+	if len(extra.Result.Resps) == 1 { // 对面要杀了
+		card := extra.Result.Resps[0]
+		temp := &Event{Type: EventUseCard, Src: first, Descs: []*Player{last}, Card: NewSimpleCardWrap(card), StepExtra: extra}
+		effect := card.Skill.CreateEffect(temp)
+		MainGame.PushAction(NewEffectGroup(temp, []IEffect{effect}))
+		first.RemoveCard(card)
+		MainGame.AddToDesktop(card)
+	} else { // 对面不杀拿装备
+		equip := first.Equips[EquipWeapon]
+		first.RemoveEquip(equip.Card)
+		event.Src.AddEquip(equip.Card)
+	}
+	extra.Index++
+}
+
+//==================CardEndStep===================
+
+type CardEndStep struct { // 有些事件为了保持执行顺序，最后一个 step 若是创建了事件不能直接结束必须等一下，否则弃牌堆处理会出问题
+}
+
+func (c *CardEndStep) Update(event *Event, extra *StepExtra) {
+	MainGame.DiscardFromDesktopRaw(event.Card) // 结算完毕
+	extra.Index = MaxIndex
+}
+
+func NewCardEndStep() *CardEndStep {
+	return &CardEndStep{}
+}
+
+//=================WuGuFengDengPrepareStep=================
+
+type WuGuFengDengPrepareStep struct {
+	Descs []*Player
+	Index int
+}
+
+func (w *WuGuFengDengPrepareStep) Update(event *Event, extra *StepExtra) {
+	if w.Index < len(w.Descs) {
+		event.Desc = w.Descs[w.Index] // 以某人为目标
+		extra.Index++
+		w.Index++
+	} else { // 结算完毕 丢弃没人要的牌
+		MainGame.AddToDesktop(event.Cards...)
+		MainGame.DiscardFromDesktop(event.Cards...)
+		MainGame.DiscardFromDesktopRaw(event.Card)
+		extra.Index = MaxIndex
+	}
+}
+
+func NewWuGuFengDengPrepareStep(src *Player) *WuGuFengDengPrepareStep {
+	return &WuGuFengDengPrepareStep{Descs: MainGame.GetSortPlayer(src), Index: 0}
+}
+
+//==================WuGuFengDengChooseStep===================
+
+type WuGuFengDengChooseStep struct {
+}
+
+func (w *WuGuFengDengChooseStep) Update(event *Event, extra *StepExtra) {
+	if !event.Invalid { // 触发选牌
+		extra.Result = &Event{Type: EventChooseCard, Src: event.Src, Desc: event.Desc, Card: event.Card,
+			Cards: event.Cards, ChooseNum: 1}
+		MainGame.TriggerEvent(extra.Result)
+		extra.Index++
+	} else {
+		extra.Index = 0
+		event.Invalid = false // 被前面复用了注意
+	}
+}
+
+func NewWuGuFengDengChooseStep() *WuGuFengDengChooseStep {
+	return &WuGuFengDengChooseStep{}
+}
+
+//===============WuGuFengDengExecuteStep==================
+
+type WuGuFengDengExecuteStep struct {
+}
+
+func (w *WuGuFengDengExecuteStep) Update(event *Event, extra *StepExtra) {
+	event.Cards = SubSlice(event.Cards, extra.Result.Resps)
+	event.Desc.AddCard(extra.Result.Resps...)
+	extra.Index = 0
+}
+
+func NewWuGuFengDengExecuteStep() *WuGuFengDengExecuteStep {
+	return &WuGuFengDengExecuteStep{}
+}
+
+//====================BotChooseCardStep===================
+
+type BotChooseCardStep struct {
+	Timer int
+}
+
+func (b *BotChooseCardStep) Update(event *Event, extra *StepExtra) {
+	if b.Timer > 0 {
+		b.Timer--
+	} else {
+		for _, card := range event.Cards { // 尽量选一下
+			if len(event.Resps) >= event.ChooseNum {
+				break
+			}
+			event.Resps = append(event.Resps, card)
+		}
+		extra.Index = MaxIndex
+	}
+}
+
+func NewBotChooseCardStep() *BotChooseCardStep {
+	return &BotChooseCardStep{Timer: BotTimer}
+}
+
+//==================ChooseNumCardStep===================
+
+type ChooseNumCardStep struct { // 选择固定数量卡牌的步骤
+	Num        int // 选择固定数量的牌
+	UIs        *EffectWithUI
+	Init0      bool
+	Buttons    []*Button
+	ChooseCard *ChooseCard
+}
+
+func NewChooseNumCardStep(num int, UIs *EffectWithUI, chooseCard *ChooseCard) *ChooseNumCardStep {
+	return &ChooseNumCardStep{Num: num, UIs: UIs, Buttons: make([]*Button, 0), ChooseCard: chooseCard}
+}
+
+// 「确定」->把选择的卡牌带到下一步(必须数量足够)
+// 「取消」->有选择取消选择
+// 点击卡牌->选择卡牌
+func (s *ChooseNumCardStep) Update(event *Event, extra *StepExtra) {
+	s.Init()
+	x, y, ok := MouseClick()
+	if !ok { // 点击事件是基础
+		return
+	}
+	// 检验按钮
+	if s.HandleBtnClick(x, y, extra) {
+		return
+	}
+	// 检验选择牌
+	if s.ChooseCard.ToggleCard(x, y) {
+		if len(s.ChooseCard.GetSelectCard()) < s.Num {
+			s.ChooseCard.SetAllCanSelect()
+		} else {
+			s.ChooseCard.DarkLastCard()
+		}
+	}
+}
+
+func (s *ChooseNumCardStep) HandleBtnClick(x, y float32, extra *StepExtra) bool {
+	for _, button := range s.Buttons {
+		if button.Click(x, y) {
+			if button.Show == TextConfirm {
+				cards := s.ChooseCard.GetSelectCard()
+				if len(cards) == s.Num {
+					extra.Cards = cards
+					extra.Index++
+				}
+			} else if button.Show == TextCancel {
+				s.ChooseCard.Reset()
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func (s *ChooseNumCardStep) Init() {
+	if s.Init0 {
+		return
+	}
+	s.Init0 = true
+	s.Buttons = NewButtons(TextConfirm, TextCancel)
+	for _, button := range s.Buttons {
+		s.UIs.UIs = append(s.UIs.UIs, button)
+	}
+	s.UIs.UIs = append(s.UIs.UIs, s.ChooseCard)
+}
+
+//=======================PlayerChooseCardStep======================
+
+type PlayerChooseCardStep struct {
+}
+
+func (p *PlayerChooseCardStep) Update(event *Event, extra *StepExtra) {
+	event.Resps = extra.Cards
+	extra.Index = MaxIndex
+}
+
+func NewPlayerChooseCardStep() *PlayerChooseCardStep {
+	return &PlayerChooseCardStep{}
+}
+
+//===================JueDouCheckStep=======================
+
+type JueDouCheckStep struct {
+}
+
+func (j *JueDouCheckStep) Update(event *Event, extra *StepExtra) {
+	if event.Invalid {
+		extra.Index = MaxIndex
+		MainGame.DiscardFromDesktopRaw(event.Card)
+	} else {
+		extra.Desc = event.Descs[0]
+		extra.Result = &Event{Type: EventRespCard, Src: event.Src, Card: event.Card, Desc: extra.Desc,
+			WrapFilter: j.ShaFilter}
+		MainGame.TriggerEvent(extra.Result)
+		extra.Index++
+	}
+}
+
+func (j *JueDouCheckStep) ShaFilter(card *CardWrap) bool {
+	return card.Desc.Name == "杀"
+}
+
+func NewJueDouCheckStep() *JueDouCheckStep {
+	return &JueDouCheckStep{}
+}
+
+//==================JueDouExecuteStep====================
+
+type JueDouExecuteStep struct {
+}
+
+func (j *JueDouExecuteStep) Update(event *Event, extra *StepExtra) {
+	if extra.Result.Resp != nil { // 继续拼杀
+		if extra.Desc == event.Src {
+			extra.Desc = event.Descs[0]
+		} else {
+			extra.Desc = event.Src
+		}
+		extra.Result = &Event{Type: EventRespCard, Src: event.Src, Card: event.Card, Desc: extra.Desc,
+			WrapFilter: j.ShaFilter}
+		MainGame.TriggerEvent(extra.Result)
+	} else { // 一方败了
+		if extra.Desc.ChangeHp(-event.HurtVal) {
+			MainGame.TriggerEvent(&Event{Type: EventPlayerDying, Src: event.Src, Desc: extra.Desc, Card: event.Card, HurtVal: event.HurtVal})
+		} else {
+			MainGame.TriggerEvent(&Event{Type: EventPlayerHurt, Src: event.Src, Desc: extra.Desc, Card: event.Card, HurtVal: event.HurtVal})
+		}
+		extra.Index = MaxIndex
+		MainGame.DiscardFromDesktopRaw(event.Card)
+	}
+}
+
+func (j *JueDouExecuteStep) ShaFilter(card *CardWrap) bool {
+	return card.Desc.Name == "杀"
+}
+
+func NewJueDouExecuteStep() *JueDouExecuteStep {
+	return &JueDouExecuteStep{}
+}
+
+//=================AoePrepareStep===================
+
+type AoePrepareStep struct { // 南蛮，万剑 通用组件
+	Descs []*Player // 排除玩家逆时针
+	Index int
+}
+
+func (n *AoePrepareStep) Update(event *Event, extra *StepExtra) {
+	if n.Index < len(n.Descs) {
+		event.Desc = n.Descs[n.Index]
+		extra.Index++
+		n.Index++
+	} else {
+		MainGame.DiscardFromDesktopRaw(event.Card) // 结算完毕
+		extra.Index = MaxIndex
+	}
+}
+
+func NewAoePrepareStep(src *Player) *AoePrepareStep {
+	return &AoePrepareStep{Descs: MainGame.GetSortPlayer(src)[1:], Index: 0}
+}
+
+//===============AoeRespStep=================
+
+type AoeRespStep struct {
+	CardFilter CardWrapFilter
+}
+
+func NewAoeRespStep(cardFilter CardWrapFilter) *AoeRespStep {
+	return &AoeRespStep{CardFilter: cardFilter}
+}
+
+func (a *AoeRespStep) Update(event *Event, extra *StepExtra) {
+	if event.Invalid { // 无懈可击了
+		extra.Index = 0
+		event.Invalid = false
+	} else {
+		extra.Result = &Event{Type: EventRespCard, Src: event.Src, Card: event.Card, Desc: event.Desc,
+			WrapFilter: a.CardFilter}
+		MainGame.TriggerEvent(extra.Result)
+		extra.Index++
+	}
+}
+
+//==============AoeExecuteStep=================
+
+type AoeExecuteStep struct {
+}
+
+func (a *AoeExecuteStep) Update(event *Event, extra *StepExtra) {
+	if extra.Result.Resp == nil { // 没有响应
+		if event.Desc.ChangeHp(-event.HurtVal) {
+			MainGame.TriggerEvent(&Event{Type: EventPlayerDying, Src: event.Src, Desc: event.Desc, Card: event.Card, HurtVal: event.HurtVal})
+		} else {
+			MainGame.TriggerEvent(&Event{Type: EventPlayerHurt, Src: event.Src, Desc: event.Desc, Card: event.Card, HurtVal: event.HurtVal})
+		}
+	}
+	extra.Index = 0
+}
+
+func NewAoeExecuteStep() *AoeExecuteStep {
+	return &AoeExecuteStep{}
+}
+
+//===============TaoYuanJieYiPrepareStep=================
+
+type TaoYuanJieYiPrepareStep struct {
+	Descs []*Player
+	Index int
+}
+
+func (t *TaoYuanJieYiPrepareStep) Update(event *Event, extra *StepExtra) {
+	if t.Index < len(t.Descs) {
+		event.Desc = t.Descs[t.Index]
+		extra.Index++
+		t.Index++
+	} else {
+		MainGame.DiscardFromDesktopRaw(event.Card) // 结算完毕
+		extra.Index = MaxIndex
+	}
+}
+
+func NewTaoYuanJieYiPrepareStep(src *Player) *TaoYuanJieYiPrepareStep {
+	return &TaoYuanJieYiPrepareStep{Descs: MainGame.GetSortPlayer(src), Index: 0}
+}
+
+//=================TaoYuanJieYiExecuteStep===================
+
+type TaoYuanJieYiExecuteStep struct {
+}
+
+func (t *TaoYuanJieYiExecuteStep) Update(event *Event, extra *StepExtra) {
+	if event.Invalid {
+		event.Invalid = false
+	} else {
+		event.Desc.ChangeHp(1)
+	}
+	extra.Index = 0
+}
+
+func NewTaoYuanJieYiExecuteStep() *TaoYuanJieYiExecuteStep {
+	return &TaoYuanJieYiExecuteStep{}
+}
+
+//====================DelayKitExecuteStep=======================
+
+type DelayKitExecuteStep struct {
+}
+
+func (d *DelayKitExecuteStep) Update(event *Event, extra *StepExtra) {
+	player := event.Src
+	if len(event.Descs) == 1 {
+		player = event.Descs[0]
+	} // 延时锦囊会放到判定区而不是弃牌区
+	card := event.Card
+	MainGame.RemoveFromDesktopRaw(card)
+	player.AddDelayKit(card)
+	extra.Index = MaxIndex
+}
+
+func NewDelayKitExecuteStep() *DelayKitExecuteStep {
+	return &DelayKitExecuteStep{}
+}
+
+//==================LeBuSiShuStep=====================
+
+type LeBuSiShuStep struct {
+}
+
+func (l *LeBuSiShuStep) Update(event *Event, extra *StepExtra) {
+	if extra.JudgeCard.Desc.Suit != SuitHeart {
+		event.StageExtra.SkipStage |= StagePlay // 跳出牌阶段
+	}
+	extra.Index = MaxIndex
+	MainGame.DiscardFromDesktopRaw(event.Card, extra.JudgeCard)
+}
+
+func NewLeBuSiShuStep() *LeBuSiShuStep {
+	return &LeBuSiShuStep{}
+}
+
+//====================ShanDianStep======================
+
+type ShanDianStep struct {
+}
+
+func NewShanDianStep() *ShanDianStep {
+	return &ShanDianStep{}
+}
+
+func (s *ShanDianStep) Update(event *Event, extra *StepExtra) {
+	card := extra.JudgeCard.Desc
+	if card.Suit == SuitSpade && card.Point >= Point2 && card.Point <= Point9 {
+		if event.Desc.ChangeHp(-3) {
+			MainGame.TriggerEvent(&Event{Type: EventPlayerDying, Desc: event.Desc, Card: event.Card, HurtVal: 3})
+		} else {
+			MainGame.TriggerEvent(&Event{Type: EventPlayerHurt, Desc: event.Desc, Card: event.Card, HurtVal: 3})
+		}
+		MainGame.DiscardFromDesktopRaw(event.Card, extra.JudgeCard) // 应该在下一个 step伤害事件还没有结算完毕
+	} else {
+		MainGame.RemoveFromDesktopRaw(event.Card, extra.JudgeCard) // 没有生效给一个人
+		next := MainGame.GetNextPlayer()
+		next.AddDelayKit(event.Card)
+	}
+	extra.Index = MaxIndex
+}
+
+//===============ShanDianInvalidStep===============
+
+type ShanDianInvalidStep struct {
+}
+
+func NewShanDianInvalidStep() *ShanDianInvalidStep {
+	return &ShanDianInvalidStep{}
+}
+
+func (k *ShanDianInvalidStep) Update(event *Event, extra *StepExtra) {
+	if event.Invalid { // 违规直接结束
+		MainGame.RemoveFromDesktopRaw(event.Card) // 没有生效给一个人
+		next := MainGame.GetNextPlayer()
+		next.AddDelayKit(event.Card)
+		extra.Index = MaxIndex
+	} else { // 否则下一步
+		extra.Index++
+	}
 }

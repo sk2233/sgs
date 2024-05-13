@@ -90,16 +90,21 @@ func (g *Game) TriggerEvent(event *Event) {
 	}
 }
 
-func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
-	players := g.Players
+func (g *Game) GetSortPlayer(src *Player) []*Player {
+	res := g.Players
 	if src != nil { // 若是存在事件源玩家，就已他为起点逆时针结算
-		for i := 0; i < len(players); i++ {
-			if players[i] == src {
-				players = append(players[i:], players[:i]...)
+		for i := 0; i < len(res); i++ {
+			if res[i] == src {
+				res = append(res[i:], res[:i]...)
 				break
 			}
 		}
 	}
+	return res
+}
+
+func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
+	players := g.GetSortPlayer(src)
 	res := make([]*SkillHolder, 0)
 	for _, player := range players { // 玩家技能最大
 		res = append(res, player.SkillHolder)
@@ -112,9 +117,13 @@ func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
 }
 
 func (g *Game) NextPlayer() {
-	player := g.Players[g.Index]
+	player := g.GetNextPlayer()
 	g.Index = (g.Index + 1) % len(g.Players)
 	g.PushAction(NewPlayerStageAction(player))
+}
+
+func (g *Game) GetNextPlayer() *Player {
+	return g.Players[g.Index]
 }
 
 func (g *Game) PushAction(action IAction) {

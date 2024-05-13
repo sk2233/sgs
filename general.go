@@ -40,7 +40,7 @@ func InitGeneral() {
 		Gender: GenderMan,
 	}, {
 		Name:   "张辽",
-		Hp:     3,
+		Hp:     4,
 		MaxHp:  4,
 		Force:  ForceWei,
 		Gender: GenderMan,
@@ -75,8 +75,8 @@ func GetGeneralN(num int) []*General {
 
 func BuildSkillForPlayer(player *Player) *SkillHolder {
 	if player.IsBot {
-		return NewSkillHolder(NewBotAskCardSkill(player))
+		return NewSkillHolder(NewBotAskCardSkill(player), NewBotChooseCardSkill(player))
 	} else {
-		return NewSkillHolder(NewPlayerAskCardSkill(player))
+		return NewSkillHolder(NewPlayerAskCardSkill(player), NewPlayerChooseCardSkill(player))
 	}
 }

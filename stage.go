@@ -71,7 +71,7 @@ func (j *JudgeStage) GetStage() StageType {
 }
 
 func NewJudgeStage() *JudgeStage {
-	return &JudgeStage{BaseStage: NewBaseStage(NewJudgeStageCheckStep(), NewJudgeCardJudgeStep(), NewJudgeCardEndStep(), NewJudgeStageExecuteStep())}
+	return &JudgeStage{BaseStage: NewBaseStage(NewJudgeStageExecuteStep())}
 }
 
 //===================DrawStage摸牌阶段====================
@@ -177,7 +177,7 @@ type BotDiscardStage struct { // bot专用
 }
 
 func (p *BotDiscardStage) GetStage() StageType {
-	return StagePlay
+	return StageDiscard
 }
 
 func NewBotDiscardStage() *BotDiscardStage {

@@ -26,7 +26,7 @@ func (e *Equip) Draw(screen *ebiten.Image) {
 	pointAndSuit := fmt.Sprintf("%s%s", e.Card.Suit, e.Card.Point)
 	suitClr := GetSuitClr(e.Card.Suit)
 	DrawText(screen, pointAndSuit, e.X+10, e.Y+20, AnchorMidLeft, Font18, suitClr)
-	DrawText(screen, e.Card.EquipAlias, e.X+200-10, e.Y+20, AnchorMidRight, Font18, ClrFFFFFF)
+	DrawText(screen, e.Card.Alias, e.X+200-10, e.Y+20, AnchorMidRight, Font18, ClrFFFFFF)
 }
 
 func BuildSkillForEquip(card *Card, player *Player) *SkillHolder {

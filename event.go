@@ -14,6 +14,8 @@ type Event struct {
 	Card       *CardWrap // 在使用的卡牌
 	Resp       *CardWrap // 响应的牌
 	WrapFilter CardWrapFilter
+	Cards      []*Card
+	ChooseNum  int
 	Resps      []*Card // 要牌，要到的结果
 	AskNum     int
 	WithEquip  bool

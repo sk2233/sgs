@@ -19,9 +19,9 @@ type Card struct { // 暂时牌上无需携带标记，不需要额外字段存�
 	Type  CardType
 	Skill ICheckSkill // 处理目标是否合法与发动最终效果
 	// 冗余参数
-	EquipType  EquipType
-	KitType    KitType
-	EquipAlias string // 装备别名  例如「朱雀羽 4」方便绘制
+	EquipType EquipType
+	KitType   KitType
+	Alias     string // 别名  例如「朱雀羽 4」方便绘制   乐不思蜀 「乐」
 }
 
 type CardWrapFilter func(card *CardWrap) bool

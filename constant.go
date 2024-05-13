@@ -82,12 +82,13 @@ const (
 	EventUseCard       EventType = "EventUseCard"       // 调用卡牌效果
 	EventCardPoint     EventType = "EventCardPoint"     // 使用卡牌指定时
 	EventRespCard      EventType = "EventRespCard"      // 要求响应某些牌，是专门响应牌的，可以使用各种虚拟牌等且只要一张
-	EventAskCard       EventType = "EventAskCard"       // 直接要牌的，不能使用转换牌，可以要多张
+	EventAskCard       EventType = "EventAskCard"       // 直接要牌的，不能使用转换牌(实际可以要例如借刀杀人)，可以要多张
 	EventShaHit        EventType = "EventShaHit"        // 杀命中事件
 	EventRespCardAfter EventType = "EventRespCardAfter" // 对方响应什么牌后
 	EventCardAfter     EventType = "EventCardAfter"     // 卡牌结算后
 	EventPlayerHurt    EventType = "EventPlayerHurt"    // 玩家受到攻击
 	EventPlayerDying   EventType = "EventPlayerDying"   // 玩家濒死
+	EventChooseCard    EventType = "EventChooseCard"    // 用户选牌，都是基础类型的牌
 )
 
 type ConditionType string

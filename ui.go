@@ -260,3 +260,85 @@ func NewAllCard(cards []*Card, equips []*Card, kits []*Card) *AllCard {
 	res.TidyCard()
 	return res
 }
+
+//===================ChooseCard======================
+
+type ChooseCard struct {
+	*BaseRect
+	Cards []*CardUI
+}
+
+func (c *ChooseCard) Draw(screen *ebiten.Image) {
+	FillRect(screen, c.X, c.Y, c.W, c.H, Clr4B403F)
+	StrokeRect(screen, c.X, c.Y, c.W, c.H, 2, ClrFFFFFF)
+	// 绘制出区域轮廓  卡牌：宽 110 高 160
+	StrokeRect(screen, c.X+20-2, c.Y+20-2, 110*5+4, 160+4, 2, ClrFFFFFF)
+	for _, card := range c.Cards {
+		card.Draw(screen)
+	}
+}
+
+// 边距 20  5张牌宽
+// 卡牌：宽 110 高 160
+func (c *ChooseCard) TidyCard() {
+	offset := float32(110)
+	if len(c.Cards)*110 > 5*110 {
+		offset = (5*110 - 110) / float32(len(c.Cards)-1)
+	}
+	x := c.X + 20
+	y := c.Y + 20
+	for _, card := range c.Cards {
+		card.X, card.Y = x, y
+		x += offset
+	}
+}
+
+func (c *ChooseCard) GetSelectCard() []*Card {
+	res := make([]*Card, 0)
+	for _, card := range c.Cards {
+		if card.Select0 {
+			res = append(res, card.Card)
+		}
+	}
+	return res
+}
+
+func (c *ChooseCard) Reset() {
+	for _, card := range c.Cards {
+		card.Select0 = false
+		card.CanSelect = true
+	}
+	c.TidyCard()
+}
+
+func (c *ChooseCard) ToggleCard(x float32, y float32) bool {
+	for _, card := range c.Cards {
+		if card.Click(x, y) {
+			card.Toggle()
+			return true
+		}
+	}
+	return false
+}
+
+func (c *ChooseCard) SetAllCanSelect() {
+	for _, card := range c.Cards {
+		card.CanSelect = true
+	}
+}
+
+func (c *ChooseCard) DarkLastCard() {
+	for _, card := range c.Cards {
+		if !card.Select0 {
+			card.CanSelect = false
+		}
+	}
+}
+
+func NewChooseCard(cards []*Card) *ChooseCard {
+	res := &ChooseCard{Cards: Map(cards, NewCardUI), BaseRect: NewBaseRect(110*5+40, 160+40)}
+	res.X = (WinWidth - res.W) / 2
+	res.Y = (280*2 - 60 - res.H) / 2 // 要考虑不要遮挡按钮
+	res.TidyCard()
+	return res
+}

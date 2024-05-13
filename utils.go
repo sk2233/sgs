@@ -229,6 +229,17 @@ func Map[S any, D any](data []S, trans func(S) D) []D {
 	return res
 }
 
+func SubSlice[T comparable](all, sub []T) []T {
+	set := NewSet[T](sub...)
+	res := make([]T, 0)
+	for _, item := range all {
+		if !set.Contain(item) {
+			res = append(res, item)
+		}
+	}
+	return res
+}
+
 //===================math==================
 
 func Abs[T int](val T) T {

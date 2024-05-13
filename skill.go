@@ -630,20 +630,15 @@ func (e *EquipHanBingJianSkill) CreateEffect(event *Event) IEffect {
 	if event.Type != EventShaHit || event.Src != e.Player || event.Card.Desc.Name != "杀" {
 		return nil
 	}
-	cards := Map(event.Desc.Cards, func(item *CardUI) *Card {
-		return item.Card
-	})
-	equips := make([]*Card, 0)
-	for _, equip := range event.Desc.Equips {
-		equips = append(equips, equip.Card)
-	}
-	// TODO 延时锦囊牌
+	cards := event.Desc.GetHandCards()
+	equips := event.Desc.GetEquipCards()
+	delayKits := event.Desc.GetDelayKitCards()
 	num := Min(2, len(cards)+len(equips)) // 最多扔两张
 	if num == 0 {                         // 啥都没有，没法发动
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectPlayerCardStep(num, res, NewAllCard(cards, equips, nil)), NewHanBingJianCheckStep())
+	res.SetSteps(NewSelectPlayerCardStep(num, res, NewAllCard(cards, equips, delayKits)), NewHanBingJianCheckStep())
 	return res
 }
 
@@ -687,4 +682,389 @@ func (e *EquipRenWangDunSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	return NewEffect(NewRenWangDunCheckStep()) // 锁定技 不需要询问用户
+}
+
+//====================WuZhongShengYouSkill====================
+
+type WuZhongShengYouSkill struct {
+	*BaseCheckSkill
+}
+
+func (w *WuZhongShengYouSkill) CreateEffect(event *Event) IEffect {
+	return NewEffect(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewWuZhongShengYouStep())
+}
+
+func (w *WuZhongShengYouSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func NewWuZhongShengYouSkill() *WuZhongShengYouSkill {
+	return &WuZhongShengYouSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+//===================WuXieKeJiSkill====================
+
+type WuXieKeJiSkill struct {
+	*BaseCheckSkill
+}
+
+func NewWuXieKeJiSkill() *WuXieKeJiSkill {
+	return &WuXieKeJiSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+// 只能用于响应，但是还是会有效果存储在这里，放在其他地方也行，放在这里比较方便
+func (b *WuXieKeJiSkill) CreateEffect(event *Event) IEffect {
+	return NewEffect(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewWuXieKeJiStep())
+}
+
+//===================GuoHeChaiQiaoSkill==================
+
+type GuoHeChaiQiaoSkill struct {
+	*BaseCheckSkill
+}
+
+func (g *GuoHeChaiQiaoSkill) GetMaxDesc(src *Player, card *Card) int {
+	return 1
+}
+
+func (g *GuoHeChaiQiaoSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *GuoHeChaiQiaoSkill) CheckTarget(src, desc *Player, card *Card) bool {
+	if src == desc { // 不能拆自己的
+		return false
+	} // 必须有牌可拆
+	return len(desc.Cards) > 0 || len(desc.Equips) > 0 || len(desc.DelayKits) > 0
+}
+
+func (g *GuoHeChaiQiaoSkill) CreateEffect(event *Event) IEffect {
+	if len(event.Descs) != 1 {
+		MainGame.AddTip("[过河拆桥]需要指定一名角色")
+		return nil
+	}
+	res := NewEffectWithUI() // 暂时没有考虑多目标选择，若需要参考「万箭齐发」
+	cards := event.Descs[0].GetHandCards()
+	equips := event.Descs[0].GetEquipCards()
+	delayKits := event.Descs[0].GetDelayKitCards()
+	res.SetSteps(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewCardCheckInvalidStep(),
+		NewSelectPlayerCardStep(1, res, NewAllCard(cards, equips, delayKits)), NewGuoHeChaiQiaoStep())
+	return res
+}
+
+func NewGuoHeChaiQiaoSkill() *GuoHeChaiQiaoSkill {
+	return &GuoHeChaiQiaoSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+//====================ShunShouQianYangSkill======================
+
+type ShunShouQianYangSkill struct {
+	*BaseCheckSkill
+}
+
+func (g *ShunShouQianYangSkill) GetMaxDesc(src *Player, card *Card) int {
+	return 1
+}
+
+func (g *ShunShouQianYangSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *ShunShouQianYangSkill) CheckTarget(src, desc *Player, card *Card) bool {
+	if src == desc { // 不能拿自己的
+		return false
+	} // 必须有牌可拆
+	if len(desc.Cards) == 0 && len(desc.Equips) == 0 && len(desc.DelayKits) == 0 {
+		return false
+	}
+	// 这里的Dist是位置距离算上马
+	distCond := MainGame.ComputeCondition(&Condition{Type: ConditionGetDist, Src: src, Desc: desc})
+	return distCond.Dist <= 1
+}
+
+func (g *ShunShouQianYangSkill) CreateEffect(event *Event) IEffect {
+	if len(event.Descs) != 1 {
+		MainGame.AddTip("[顺手牵羊]需要指定一名角色")
+		return nil
+	}
+	res := NewEffectWithUI() // 暂时没有考虑多目标选择，若需要参考「万箭齐发」
+	cards := event.Descs[0].GetHandCards()
+	equips := event.Descs[0].GetEquipCards()
+	delayKits := event.Descs[0].GetDelayKitCards()
+	res.SetSteps(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewCardCheckInvalidStep(),
+		NewSelectPlayerCardStep(1, res, NewAllCard(cards, equips, delayKits)), NewShunShouQianYangStep())
+	return res
+}
+
+func NewShunShouQianYangSkill() *ShunShouQianYangSkill {
+	return &ShunShouQianYangSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+//======================JieDaoShaRenSkill=====================
+
+type JieDaoShaRenSkill struct {
+	*BaseCheckSkill
+	ShaSkill *ShaSkill
+	ShaCard  *Card
+}
+
+func (g *JieDaoShaRenSkill) GetMaxDesc(src *Player, card *Card) int {
+	return 2
+}
+
+func (g *JieDaoShaRenSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *JieDaoShaRenSkill) CheckTarget(src, desc *Player, card *Card) bool {
+	if len(MainGame.GetSelectPlayer()) == 1 { // 已经选择了一个人，选择的另一个人必须在其攻击范围内
+		target := MainGame.GetSelectPlayer()[0]
+		return g.ShaSkill.CheckTarget(target, desc, g.ShaCard)
+	}
+	// 第一个选择选择的人必须有武器且不能是自己
+	if src == desc {
+		return false
+	}
+	return desc.Equips[EquipWeapon] != nil
+}
+
+func (g *JieDaoShaRenSkill) CreateEffect(event *Event) IEffect {
+	if len(event.Descs) != 2 {
+		MainGame.AddTip("[借刀杀人]必需指定两名角色")
+		return nil
+	}
+	return NewEffect(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewJieDaoShaRenAskStep(),
+		NewJieDaoShaRenCheckStep(), NewCardEndStep())
+}
+
+func NewJieDaoShaRenSkill() *JieDaoShaRenSkill {
+	return &JieDaoShaRenSkill{BaseCheckSkill: NewBaseCheckSkill(), ShaSkill: NewShaSkill(), ShaCard: &Card{
+		Name: "杀", Point: PointNone, Suit: SuitNone, Type: CardBasic,
+	}}
+}
+
+//=================WuGuFengDengSkill===================
+
+type WuGuFengDengSkill struct {
+	*BaseCheckSkill
+}
+
+func NewWuGuFengDengSkill() *WuGuFengDengSkill {
+	return &WuGuFengDengSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+func (g *WuGuFengDengSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *WuGuFengDengSkill) CreateEffect(event *Event) IEffect {
+	event.Cards = MainGame.DrawCard(len(MainGame.Players))
+	return NewEffect(NewWuGuFengDengPrepareStep(event.Src), NewLoopTriggerUseKitStep(event.Src),
+		NewCheckRespKitStep(), NewWuGuFengDengChooseStep(), NewWuGuFengDengExecuteStep())
+}
+
+//================BotChooseCardSkill=====================
+
+type BotChooseCardSkill struct {
+	*BaseSkill
+	Player *Player
+}
+
+func NewBotChooseCardSkill(player *Player) *BotChooseCardSkill {
+	return &BotChooseCardSkill{Player: player}
+}
+
+func (b *BotChooseCardSkill) CreateEffect(event *Event) IEffect {
+	if event.Type != EventChooseCard || event.Desc != b.Player {
+		return nil
+	}
+	return NewEffect(NewBotChooseCardStep())
+}
+
+//===================PlayerChooseCardSkill======================
+
+type PlayerChooseCardSkill struct {
+	*BaseSkill
+	Player *Player
+}
+
+func (b *PlayerChooseCardSkill) CreateEffect(event *Event) IEffect {
+	if event.Type != EventChooseCard || event.Desc != b.Player {
+		return nil
+	}
+	res := NewEffectWithUI()
+	res.SetSteps(NewChooseNumCardStep(event.ChooseNum, res, NewChooseCard(event.Cards)), NewPlayerChooseCardStep())
+	return res
+}
+
+func NewPlayerChooseCardSkill(player *Player) *PlayerChooseCardSkill {
+	return &PlayerChooseCardSkill{Player: player}
+}
+
+//===================JueDouSkill================
+
+type JueDouSkill struct {
+	*BaseCheckSkill
+}
+
+func NewJueDouSkill() *JueDouSkill {
+	return &JueDouSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+func (g *JueDouSkill) GetMaxDesc(src *Player, card *Card) int {
+	return 1
+}
+
+func (g *JueDouSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *JueDouSkill) CheckTarget(src, desc *Player, card *Card) bool {
+	return src != desc
+}
+
+func (g *JueDouSkill) CreateEffect(event *Event) IEffect {
+	event.HurtVal = 1
+	return NewEffect(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewJueDouCheckStep(), NewJueDouExecuteStep())
+}
+
+//=============NanManRuQinSkill===============
+
+type NanManRuQinSkill struct {
+	*BaseCheckSkill
+}
+
+func (g *NanManRuQinSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *NanManRuQinSkill) CreateEffect(event *Event) IEffect {
+	event.HurtVal = 1
+	return NewEffect(NewAoePrepareStep(event.Src), NewLoopTriggerUseKitStep(event.Src),
+		NewCheckRespKitStep(), NewAoeRespStep(g.ShaFilter), NewAoeExecuteStep())
+}
+
+func (g *NanManRuQinSkill) ShaFilter(card *CardWrap) bool {
+	return card.Desc.Name == "杀"
+}
+
+func NewNanManRuQinSkill() *NanManRuQinSkill {
+	return &NanManRuQinSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+//================WanJianQiFaSkill================
+
+type WanJianQiFaSkill struct {
+	*BaseCheckSkill
+}
+
+func (g *WanJianQiFaSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *WanJianQiFaSkill) CreateEffect(event *Event) IEffect {
+	event.HurtVal = 1
+	return NewEffect(NewAoePrepareStep(event.Src), NewLoopTriggerUseKitStep(event.Src),
+		NewCheckRespKitStep(), NewAoeRespStep(g.ShanFilter), NewAoeExecuteStep())
+}
+
+func (g *WanJianQiFaSkill) ShanFilter(card *CardWrap) bool {
+	return card.Desc.Name == "闪"
+}
+
+func NewWanJianQiFaSkill() *WanJianQiFaSkill {
+	return &WanJianQiFaSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+//================TaoYuanJieYiSkill================
+
+type TaoYuanJieYiSkill struct {
+	*BaseCheckSkill
+}
+
+func NewTaoYuanJieYiSkill() *TaoYuanJieYiSkill {
+	return &TaoYuanJieYiSkill{BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+func (g *TaoYuanJieYiSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *TaoYuanJieYiSkill) CreateEffect(event *Event) IEffect {
+	return NewEffect(NewTaoYuanJieYiPrepareStep(event.Src), NewLoopTriggerUseKitStep(event.Src),
+		NewCheckRespKitStep(), NewTaoYuanJieYiExecuteStep())
+}
+
+//================DelayKitSkill===================
+
+type DelayKitSkill struct {
+	*BaseCheckSkill
+	IsSelf bool // 是否是针对自己发动的延时锦囊，暂时只有闪电
+}
+
+func (g *DelayKitSkill) GetMaxDesc(src *Player, card *Card) int {
+	if g.IsSelf {
+		return 0
+	}
+	return 1
+}
+
+func (g *DelayKitSkill) CheckUse(src *Player, card *Card, extra *StepExtra) bool {
+	condition := MainGame.ComputeCondition(&Condition{Type: ConditionUseCard, Src: src, Card: card})
+	return !condition.Invalid
+}
+
+func (g *DelayKitSkill) CheckTarget(src, desc *Player, card *Card) bool {
+	return !g.IsSelf && src != desc
+}
+
+func (g *DelayKitSkill) CreateEffect(event *Event) IEffect {
+	if !g.IsSelf && len(event.Descs) != 1 {
+		MainGame.AddTip("[%s]必须选择一名角色", event.Card.Desc.Name)
+		return nil
+	}
+	return NewEffect(NewDelayKitExecuteStep())
+}
+
+func NewDelayKitSkill(isSelf bool) *DelayKitSkill {
+	return &DelayKitSkill{IsSelf: isSelf, BaseCheckSkill: NewBaseCheckSkill()}
+}
+
+//===================LeBuSiShuSkill======================
+
+type LeBuSiShuSkill struct {
+	*BaseSkill
+}
+
+func (g *LeBuSiShuSkill) CreateEffect(event *Event) IEffect {
+	return NewEffect(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewCardCheckInvalidStep(),
+		NewJudgeCardJudgeStep(), NewJudgeCardEndStep(), NewLeBuSiShuStep())
+}
+
+func NewLeBuSiShuSkill() *LeBuSiShuSkill {
+	return &LeBuSiShuSkill{BaseSkill: NewBaseSkill(TagNone, "")}
+}
+
+//=========================ShanDianSkill=======================
+
+type ShanDianSkill struct {
+	*BaseSkill
+}
+
+func (g *ShanDianSkill) CreateEffect(event *Event) IEffect {
+	return NewEffect(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewShanDianInvalidStep(),
+		NewJudgeCardJudgeStep(), NewJudgeCardEndStep(), NewShanDianStep())
+}
+
+func NewShanDianSkill() *ShanDianSkill {
+	return &ShanDianSkill{BaseSkill: NewBaseSkill(TagNone, "")}
 }
