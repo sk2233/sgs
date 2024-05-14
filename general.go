@@ -75,8 +75,8 @@ func GetGeneralN(num int) []*General {
 
 func BuildSkillForPlayer(player *Player) *SkillHolder {
 	if player.IsBot {
-		return NewSkillHolder(NewBotAskCardSkill(player), NewBotChooseCardSkill(player))
+		return NewSkillHolder(NewBotAskCardSkill(player), NewBotChooseCardSkill(player), NewPlayerDyingSkill(player))
 	} else {
-		return NewSkillHolder(NewPlayerAskCardSkill(player), NewPlayerChooseCardSkill(player))
+		return NewSkillHolder(NewPlayerAskCardSkill(player), NewPlayerChooseCardSkill(player), NewPlayerDyingSkill(player))
 	}
 }

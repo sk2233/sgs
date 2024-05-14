@@ -1068,3 +1068,21 @@ func (g *ShanDianSkill) CreateEffect(event *Event) IEffect {
 func NewShanDianSkill() *ShanDianSkill {
 	return &ShanDianSkill{BaseSkill: NewBaseSkill(TagNone, "")}
 }
+
+//======================PlayerDyingSkill===========================
+
+type PlayerDyingSkill struct {
+	*BaseSkill
+	Player *Player
+}
+
+func (g *PlayerDyingSkill) CreateEffect(event *Event) IEffect {
+	if event.Type != EventPlayerDying || event.Desc != g.Player {
+		return nil
+	} // 自己要死了
+	return NewEffect()
+}
+
+func NewPlayerDyingSkill(player *Player) *PlayerDyingSkill {
+	return &PlayerDyingSkill{Player: player, BaseSkill: NewBaseSkill(TagNone, "")}
+}
