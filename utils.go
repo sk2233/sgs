@@ -64,7 +64,7 @@ var defaultFont *opentype.Font
 func NewFont(size float64) font.Face {
 	if defaultFont == nil {
 		// 必须使用支持中文的字体
-		bs, err := os.ReadFile("res/ipix.ttf")
+		bs, err := os.ReadFile("res/fusion-pixel-12px-monospaced-zh_hans.ttf")
 		HandleErr(err)
 		defaultFont, err = opentype.Parse(bs)
 		HandleErr(err)
