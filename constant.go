@@ -28,6 +28,7 @@ var (
 var (
 	Font18 = NewFont(18)
 	Font16 = NewFont(16)
+	Font36 = NewFont(36)
 )
 
 type Anchor complex64 // 复数类型，非常适合当做向量，简单起见这里不会用到向量 这里把实数当x锚点，虚数当y锚点
@@ -76,6 +77,8 @@ const (
 	EventPlayerStage   EventType = "EventPlayerStage"
 	EventGameStart     EventType = "EventGameStart"     // 游戏开始事件，有些武将技能在这里发动
 	EventStagePrepare  EventType = "EventStagePrepare"  // 准备阶段事件
+	EventStageDraw     EventType = "EventStageDraw"     // 摸牌阶段开始事件
+	EventStageDiscard  EventType = "EventStageDiscard"  // 弃牌阶段
 	EventStageEnd      EventType = "EventStageEnd"      // 回合结束阶段事件
 	EventJudgeCard     EventType = "EventJudgeCard"     // 判定事件发生后已经拿到判定牌了，但是还没有生效
 	EventJudgeEnd      EventType = "EventJudgeEnd"      // 判定牌生效后
@@ -89,6 +92,10 @@ const (
 	EventPlayerHurt    EventType = "EventPlayerHurt"    // 玩家受到攻击
 	EventPlayerDying   EventType = "EventPlayerDying"   // 玩家濒死
 	EventChooseCard    EventType = "EventChooseCard"    // 用户选牌，都是基础类型的牌
+	EventPlayerDie     EventType = "EventPlayerDie"     // 用户死亡
+	EventGameOverCheck EventType = "EventGameOverCheck" // 确定用户死亡后检查游戏是否结束
+	EventUseSkill      EventType = "EventUseSkill"      // 调用技能效果
+	EventEquipLost     EventType = "EventEquipLost"     // 丢失装备
 )
 
 type ConditionType string
@@ -101,6 +108,7 @@ const (
 	ConditionUseCard     ConditionType = "ConditionUseCard"     // 计算使用牌的一些总的条件，不针对具体目标
 	ConditionCardMaxDesc ConditionType = "ConditionCardMaxDesc" // 卡牌最多可指定的目标数目
 	ConditionUseSha      ConditionType = "ConditionUseSha"      // 计算使用杀的一些条件，针对具体目标
+	ConditionCardPoint   ConditionType = "ConditionCardPoint"   // 判定指向是否违法
 )
 
 type SkillTag int
@@ -108,7 +116,8 @@ type SkillTag int
 const (
 	TagLock   SkillTag = 1 << iota // 锁定技
 	TagActive                      // 可以出牌阶段主动发动的
-	TagNone   SkillTag = 0
+	TagZhuGong
+	TagNone SkillTag = 0
 )
 
 type StageType int

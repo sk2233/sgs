@@ -29,11 +29,12 @@ func NewGame() *Game {
 	MainGame = &Game{
 		Players:     players,
 		ActionStack: stack,
-		SkillHolder: NewSkillHolder(NewSysInitCardSkill(), NewSysGameStartSkill(),
-			NewSysDrawCardSkill(), NewSysMaxCardSkill(), NewSysPlayerDistSkill(), NewSysRespCardSkill()),
+		SkillHolder: NewSkillHolder(NewSysInitCardSkill(), NewSysGameStartSkill(), NewSysMaxCardSkill(),
+			NewSysPlayerDistSkill(), NewSysRespCardSkill(), NewSysPlayerDieSkill(), NewSysGameOverSkill()),
 		CardManager: NewCardManager(),
 		TipManager:  NewTipManager(),
 		Desktop:     NewDesktop(),
+		Index:       -1,
 	}
 	return MainGame
 }
@@ -100,7 +101,9 @@ func (g *Game) GetSortPlayer(src *Player) []*Player {
 			}
 		}
 	}
-	return res
+	return Filter(res, func(player *Player) bool {
+		return !player.IsDie
+	})
 }
 
 func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
@@ -117,13 +120,20 @@ func (g *Game) GetAllSortSkillHolder(src *Player) []*SkillHolder {
 }
 
 func (g *Game) NextPlayer() {
-	player := g.GetNextPlayer()
-	g.Index = (g.Index + 1) % len(g.Players)
-	g.PushAction(NewPlayerStageAction(player))
+	g.Index = g.getNextIndex()
+	g.PushAction(NewPlayerStageAction(g.Players[g.Index]))
 }
 
 func (g *Game) GetNextPlayer() *Player {
-	return g.Players[g.Index]
+	return g.Players[g.getNextIndex()]
+}
+
+func (g *Game) getNextIndex() int {
+	index := (g.Index + 1) % len(g.Players)
+	for g.Players[index].IsDie {
+		index = (index + 1) % len(g.Players)
+	}
+	return index
 }
 
 func (g *Game) PushAction(action IAction) {
@@ -201,11 +211,28 @@ func (g *Game) CheckPlayer(src *Player, card *Card) {
 	}
 }
 
-func (g *Game) GetPlayerIndex(player *Player) int {
-	for i := 0; i < len(g.Players); i++ {
-		if g.Players[i] == player {
-			return i
+func (g *Game) GetPlayers(filter func(player *Player) bool) []*Player {
+	return Filter(g.Players, filter)
+}
+
+func (g *Game) CheckPlayerByFilter(filter PlayerFilter) {
+	for _, player := range g.Players {
+		player.CanSelect = filter(player)
+	}
+}
+
+func (g *Game) DarkLastPlayer() {
+	for _, player := range g.Players {
+		if !player.Select {
+			player.CanSelect = false
 		}
 	}
-	return -1
+}
+
+func (g *Game) AddCardToTop(cards ...*Card) {
+	g.CardManager.AddCardToTop(cards)
+}
+
+func (g *Game) AddCardToBottom(cards ...*Card) {
+	g.CardManager.AddCardToBottom(cards)
 }

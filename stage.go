@@ -85,7 +85,7 @@ func (d *DrawStage) GetStage() StageType {
 }
 
 func NewDrawStage() *DrawStage {
-	return &DrawStage{BaseStage: NewBaseStage(NewDrawStageMainStep())}
+	return &DrawStage{BaseStage: NewBaseStage(NewTriggerEventStep(EventStageDraw), NewDrawStageMainStep())}
 }
 
 //====================PlayStage出牌阶段======================
@@ -165,7 +165,7 @@ func (d *DiscardStage) GetStage() StageType {
 
 func NewDiscardStage() *DiscardStage {
 	res := &DiscardStage{}
-	base := NewBaseStage(NewDiscardStageCheckStep(), NewDiscardStageMainStep(res))
+	base := NewBaseStage(NewTriggerEventStep(EventStageDiscard), NewDiscardStageCheckStep(), NewDiscardStageMainStep(res))
 	res.BaseStage = base
 	return res
 }

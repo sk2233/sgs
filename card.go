@@ -72,6 +72,14 @@ func (m *CardManager) Draw(screen *ebiten.Image) {
 	DrawText(screen, fmt.Sprintf("%d/%d", len(m.Cards), len(m.DiscardCards)), WinWidth-10, 10, AnchorTopRight, Font18, ClrFFFFFF)
 }
 
+func (m *CardManager) AddCardToTop(cards []*Card) {
+	m.Cards = append(cards, m.Cards...)
+}
+
+func (m *CardManager) AddCardToBottom(cards []*Card) {
+	m.Cards = append(m.Cards, cards...)
+}
+
 func NewCardManager() *CardManager {
 	return &CardManager{Cards: LoadCard(), DiscardCards: make([]*Card, 0)}
 }

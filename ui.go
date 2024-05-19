@@ -344,3 +344,140 @@ func NewChooseCard(cards []*Card) *ChooseCard {
 	res.TidyCard()
 	return res
 }
+
+//==================GameOver=================
+
+type GameOver struct {
+	Info string
+}
+
+func NewGameOver(info string) *GameOver {
+	return &GameOver{Info: info}
+}
+
+func (g *GameOver) Draw(screen *ebiten.Image) {
+	DrawText(screen, g.Info, WinWidth/2, WinHeight/2, AnchorMidCenter, Font36, ClrFFFFFF)
+}
+
+//=================SkillUI==================
+
+type SkillUI struct {
+	*BaseRect
+	Skill ISkill
+}
+
+func (s *SkillUI) Draw(screen *ebiten.Image) {
+	if s.Skill.GetTag()&TagActive > 0 { // 主动技能标识
+		StrokeRect(screen, s.X+1, s.Y+1, s.W-2, s.H-2, 2, Clr00FF00)
+	} else {
+		StrokeRect(screen, s.X+1, s.Y+1, s.W-2, s.H-2, 2, ClrFFFFFF)
+	}
+	name := VerticalText(s.Skill.GetName())
+	DrawText(screen, name, s.X+10, s.Y+10, AnchorTopLeft, Font18, ClrFFFFFF)
+}
+
+func (s *SkillUI) Click(x, y float32) bool {
+	return (s.Skill.GetTag()&TagActive) > 0 && s.BaseRect.Click(x, y)
+}
+
+func NewSkillUI(skill ISkill) *SkillUI {
+	// 技能都是两个字的，边距 10
+	return &SkillUI{Skill: skill, BaseRect: NewBaseRect(42, 66)}
+}
+
+//======================================
+
+type GuanXing struct {
+	*BaseRect
+	Cards      []*CardUI // 原来的顺序
+	OrderCards []*CardUI // 长度为 10 前 5 个位于上面，后 5 个位于下面
+	SelectCard *CardUI
+}
+
+func (g *GuanXing) Draw(screen *ebiten.Image) {
+	FillRect(screen, g.X, g.Y, g.W, g.H, Clr4B403F)
+	StrokeRect(screen, g.X, g.Y, g.W, g.H, 2, ClrFFFFFF)
+	// 绘制出区域轮廓
+	StrokeRect(screen, g.X+20-2, g.Y+20-2, 110*5+4, 160+4, 2, ClrFFFFFF)
+	StrokeRect(screen, g.X+20-2, g.Y+160+20*2-2, 110*5+4, 160+4, 2, ClrFFFFFF)
+	for _, card := range g.Cards {
+		card.Draw(screen)
+	}
+}
+
+func (g *GuanXing) TidyCard() {
+	for i, card := range g.OrderCards {
+		x := g.X + 20 + float32(i%5)*110
+		y := g.Y + 20 + float32(i/5)*(160+20)
+		card.X, card.Y = x, y
+	}
+}
+
+func (g *GuanXing) ToggleCard(x float32, y float32) {
+	for _, card := range g.OrderCards {
+		if card.Click(x, y) {
+			if g.SelectCard == nil { // 第一个选择的牌不能是占位的
+				if len(card.Card.Name) > 0 {
+					card.Toggle()
+					g.SelectCard = card
+				}
+			} else if g.SelectCard == card { // 取消选择
+				card.Toggle()
+				g.SelectCard = nil
+			} else { // 交换位置
+				index1 := g.getIndex(g.SelectCard)
+				index2 := g.getIndex(card)
+				g.OrderCards[index1], g.OrderCards[index2] = g.OrderCards[index2], g.OrderCards[index1]
+				g.SelectCard.Toggle()
+				g.SelectCard = nil
+				g.TidyCard()
+			}
+			return
+		}
+	}
+
+}
+
+func (g *GuanXing) getIndex(card *CardUI) int {
+	for i := 0; i < len(g.OrderCards); i++ {
+		if g.OrderCards[i] == card {
+			return i
+		}
+	}
+	return -1
+}
+
+func (g *GuanXing) GetUpCards() []*Card {
+	res := make([]*Card, 0)
+	for i := 0; i < 5; i++ {
+		if len(g.OrderCards[i].Card.Name) > 0 {
+			res = append(res, g.OrderCards[i].Card)
+		}
+	}
+	return res
+}
+
+func (g *GuanXing) GetDownCards() []*Card {
+	res := make([]*Card, 0)
+	for i := 5; i < 10; i++ {
+		if len(g.OrderCards[i].Card.Name) > 0 {
+			res = append(res, g.OrderCards[i].Card)
+		}
+	}
+	return res
+}
+
+// 110 * 160
+func NewGuanXing(cards []*Card) *GuanXing {
+	res := &GuanXing{BaseRect: NewBaseRect(110*5+20*2, 160*2+20*3), Cards: Map(cards, NewCardUI), OrderCards: make([]*CardUI, 10)}
+	for i, card := range res.Cards {
+		res.OrderCards[i] = card
+	}
+	for i := len(cards); i < 10; i++ {
+		res.OrderCards[i] = NewCardUI(&Card{}) // 占位
+	}
+	res.X = (WinWidth - res.W) / 2
+	res.Y = (280*2 - 60 - res.H) / 2 // 要考虑不要遮挡按钮
+	res.TidyCard()
+	return res
+}

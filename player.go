@@ -10,6 +10,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+type PlayerFilter func(player *Player) bool
+
 type Player struct {
 	X, Y           float32              // 位置的左上角
 	IsBot          bool                 // 是否为机器人
@@ -23,6 +25,8 @@ type Player struct {
 	SkillHolder    *SkillHolder         // 技能
 	Select         bool                 // 是否被选择
 	CanSelect      bool                 // 是否可以被选择
+	IsDie          bool                 // 是否死亡
+	Skills         []*SkillUI           // 用于显示出来的技能
 }
 
 func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
@@ -47,8 +51,10 @@ func NewPlayer(x, y float32, isBot bool, general *General, role Role) *Player {
 		Cards:    make([]*CardUI, 0),
 		Select:   false,
 		Equips:   make(map[EquipType]*Equip),
+		Skills:   make([]*SkillUI, 0),
 	}
 	res.SkillHolder = BuildSkillForPlayer(res)
+	res.TidySkill()
 	return res
 }
 
@@ -72,6 +78,9 @@ func (p *Player) drawBot(screen *ebiten.Image) {
 	name := VerticalText(p.General.Name)
 	DrawText(screen, name, p.X+10, p.Y+50, AnchorTopLeft, Font18, ClrFFFFFF)
 	role := VerticalText(string(p.MarkRole))
+	if p.IsDie {
+		role = VerticalText(string(p.Role))
+	}
 	DrawText(screen, role, p.X+200+20, p.Y, AnchorTopCenter, Font18, ClrFFFFFF)
 	p.drawHp(screen, p.X+200+20, p.Y+50)
 	for _, equip := range p.Equips {
@@ -87,6 +96,9 @@ func (p *Player) drawBot(screen *ebiten.Image) {
 	}
 	if !p.CanSelect {
 		FillRect(screen, p.X, p.Y, 200+40, 280, Clr00000080)
+	}
+	if p.IsDie {
+		DrawText(screen, "阵亡", p.X+120, p.Y+140, AnchorMidCenter, Font36, ClrFFFFFF)
 	}
 }
 
@@ -113,11 +125,17 @@ func (p *Player) drawPlayer(screen *ebiten.Image) {
 	for _, card := range p.Cards {
 		card.Draw(screen)
 	}
+	for _, skill := range p.Skills {
+		skill.Draw(screen)
+	}
 	if p.Select {
 		StrokeCircle(screen, p.X+WinWidth-120, p.Y+80, 40, 4, Clr00FF00)
 	}
 	if !p.CanSelect {
 		FillRect(screen, p.X+WinWidth-200-40, p.Y, 200+40, 160, Clr00000080)
+	}
+	if p.IsDie {
+		DrawText(screen, "阵亡", p.X+WinWidth-120, p.Y+80, AnchorMidCenter, Font36, ClrFFFFFF)
 	}
 }
 
@@ -169,10 +187,17 @@ func (p *Player) RemoveEquip(cards ...*Card) {
 		return
 	}
 	set := NewSet[*Card](cards...)
+	remove := false
 	for type0, equip := range p.Equips {
 		if set.Contain(equip.Card) {
 			delete(p.Equips, type0)
+			// TODO 主要不要在 player内触发事件
+			MainGame.TriggerEvent(&Event{Type: EventEquipLost, Src: p, Card: NewSimpleCardWrap(equip.Card)})
+			remove = true
 		}
+	}
+	if remove {
+		p.TidySkill()
 	}
 }
 
@@ -305,6 +330,7 @@ func (p *Player) AddEquip(card *Card) *Card {
 	}
 	equip.X, equip.Y = p.X, y
 	p.Equips[card.EquipType] = equip
+	p.TidySkill()
 	if old == nil {
 		return nil
 	}
@@ -328,13 +354,13 @@ func (p *Player) TidyDelayKitCard() {
 	}
 }
 
-func (p *Player) GetHandCards() []*Card {
+func (p *Player) GetCards() []*Card {
 	return Map(p.Cards, func(item *CardUI) *Card {
 		return item.Card
 	})
 }
 
-func (p *Player) GetEquipCards() []*Card {
+func (p *Player) GetEquips() []*Card {
 	res := make([]*Card, 0)
 	for _, equip := range p.Equips {
 		res = append(res, equip.Card)
@@ -342,8 +368,47 @@ func (p *Player) GetEquipCards() []*Card {
 	return res
 }
 
-func (p *Player) GetDelayKitCards() []*Card {
+func (p *Player) GetDelayKits() []*Card {
 	return Map(p.DelayKits, func(item *DelayKit) *Card {
 		return item.Card.Desc
 	})
+}
+
+// 技能宽 42 高 66  武将宽 200  从32开始 最多 4 个技能
+func (p *Player) TidySkill() {
+	if p.IsBot { // 只有玩家需要
+		return
+	}
+	skills := make([]*SkillUI, 0) // 收集武将技能
+	for _, skill := range p.SkillHolder.Skills {
+		if len(skill.GetName()) > 0 { // 只要有名称的技能
+			skills = append(skills, NewSkillUI(skill))
+		}
+	} // 收集装备技能
+	for _, equip := range p.Equips {
+		for _, skill := range equip.SkillHolder.Skills {
+			if len(skill.GetName()) > 0 { // 只要有名称的技能
+				skills = append(skills, NewSkillUI(skill))
+			}
+		}
+	}
+	x := p.X + WinWidth - 200 - 40 + 32
+	y := p.Y + 160 - 66
+	for _, skill := range skills {
+		skill.X, skill.Y = x, y
+		x += 42
+	}
+	p.Skills = skills
+}
+
+func (p *Player) AddSkill(skill ISkill) {
+	p.SkillHolder.Skills = append(p.SkillHolder.Skills, skill)
+	p.TidySkill()
+}
+
+func (p *Player) RemoveSkill(skill ISkill) {
+	p.SkillHolder.Skills = Filter(p.SkillHolder.Skills, func(item ISkill) bool {
+		return item != skill
+	})
+	p.TidySkill()
 }

@@ -15,7 +15,8 @@ type Event struct {
 	Resp       *CardWrap // 响应的牌
 	WrapFilter CardWrapFilter
 	Cards      []*Card
-	ChooseNum  int
+	ChooseMax  int
+	ChooseMin  int
 	Resps      []*Card // 要牌，要到的结果
 	AskNum     int
 	WithEquip  bool
@@ -23,6 +24,7 @@ type Event struct {
 	StageExtra *StageExtra
 	StepExtra  *StepExtra
 	HurtVal    int // 伤害值
+	RecoverVal int // 恢复值
 	Event      *Event
 	Force      bool
 	ShaHit     bool
