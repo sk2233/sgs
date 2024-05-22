@@ -33,7 +33,7 @@ func NewBaseStage(steps ...IStep) *BaseStage {
 func (b *BaseStage) Update(player *Player, extra *StageExtra) bool {
 	if b.Extra.Index < len(b.Steps) {
 		b.Steps[b.Extra.Index].Update(&Event{ // 大部分到Step层就不再区分事件了
-			Type:       EventPlayerStage, // 这里为了调用Step必须使用Event不太好 TODO
+			Type:       EventPlayerStage, // TODO 这里为了调用Step必须使用Event不太好
 			Src:        player,
 			StageExtra: extra,
 		}, b.Extra)
@@ -94,6 +94,7 @@ func NewDrawStage() *DrawStage {
 type PlayStage struct { // 非bot专用
 	*BaseStage
 	Buttons []*Button // 主动技能还是画到武将身上吧，这里只有「出牌」与「取消」
+	Text    *Text
 }
 
 // 刚回来一定是阶段 0
@@ -105,6 +106,7 @@ func (p *PlayStage) TopStage(player *Player, extra *StageExtra) {
 // 绘制区域 240 ~ 1200-240 y底部是280*2 绘制「出牌」「取消」
 func (p *PlayStage) InitStage(player *Player, extra *StageExtra) {
 	p.Buttons = NewButtons(TextPlayCard, TextCancel)
+	p.Text = NewText("请选择一张手牌与其目标进行使用")
 	player.ResetCard()
 	player.CheckCard(p.Extra)
 }
@@ -113,6 +115,7 @@ func (p *PlayStage) DrawStage(screen *ebiten.Image, player *Player, extra *Stage
 	for _, button := range p.Buttons {
 		button.Draw(screen)
 	}
+	p.Text.Draw(screen)
 }
 
 func (p *PlayStage) GetStage() StageType {
@@ -146,17 +149,20 @@ func NewBotPlayStage() *BotPlayStage {
 type DiscardStage struct {
 	*BaseStage
 	Buttons []*Button
+	Text    *Text
 }
 
 func (d *DiscardStage) InitStage(player *Player, extra *StageExtra) {
 	// 只有「确定」与「取消」
 	d.Buttons = NewButtons(TextConfirm, TextCancel)
+	d.Text = NewText("请选择手牌弃置")
 }
 
 func (d *DiscardStage) DrawStage(screen *ebiten.Image, player *Player, extra *StageExtra) {
 	for _, button := range d.Buttons {
 		button.Draw(screen)
 	}
+	d.Text.Draw(screen)
 }
 
 func (d *DiscardStage) GetStage() StageType {

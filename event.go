@@ -29,6 +29,7 @@ type Event struct {
 	Force      bool
 	ShaHit     bool
 	Invalid    bool
+	Info       string
 }
 
 type Condition struct {

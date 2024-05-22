@@ -11,7 +11,6 @@ func LoadPlayer() []*Player {
 	RandSlice(roles)
 	res := make([]*Player, 0)
 	generals := GetGeneralN(len(roles))
-	generals[0] = GetGeneral("诸葛亮")
 	//界面：宽 1200 高 720
 	//装备栏：宽 200 高 40
 	//武将头图：宽 200 高 120

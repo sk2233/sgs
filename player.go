@@ -98,7 +98,7 @@ func (p *Player) drawBot(screen *ebiten.Image) {
 		FillRect(screen, p.X, p.Y, 200+40, 280, Clr00000080)
 	}
 	if p.IsDie {
-		DrawText(screen, "阵亡", p.X+120, p.Y+140, AnchorMidCenter, Font36, ClrFFFFFF)
+		DrawText(screen, "阵亡", p.X+120, p.Y+140, AnchorMidCenter, Font64, ClrFFFFFF)
 	}
 }
 
@@ -135,7 +135,7 @@ func (p *Player) drawPlayer(screen *ebiten.Image) {
 		FillRect(screen, p.X+WinWidth-200-40, p.Y, 200+40, 160, Clr00000080)
 	}
 	if p.IsDie {
-		DrawText(screen, "阵亡", p.X+WinWidth-120, p.Y+80, AnchorMidCenter, Font36, ClrFFFFFF)
+		DrawText(screen, "阵亡", p.X+WinWidth-120, p.Y+80, AnchorMidCenter, Font64, ClrFFFFFF)
 	}
 }
 
@@ -191,7 +191,7 @@ func (p *Player) RemoveEquip(cards ...*Card) {
 	for type0, equip := range p.Equips {
 		if set.Contain(equip.Card) {
 			delete(p.Equips, type0)
-			// TODO 主要不要在 player内触发事件
+			// TODO 尽量不要在 player内触发事件
 			MainGame.TriggerEvent(&Event{Type: EventEquipLost, Src: p, Card: NewSimpleCardWrap(equip.Card)})
 			remove = true
 		}

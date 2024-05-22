@@ -4,6 +4,8 @@
 */
 package main
 
+import "fmt"
+
 type ISkill interface {
 	GetTag() SkillTag
 	GetName() string
@@ -416,7 +418,8 @@ func (e *EquipZhangBaSheMaoRespSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectNumCardStep(e.AnyFilter, 2, 2, true, e.Player, res), NewZhangBaSheMaoRespStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否使用「丈八蛇矛」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectNumCardStep(e.AnyFilter, 2, 2, false, e.Player, res, "请选择两张手牌"), NewZhangBaSheMaoRespStep())
 	return res
 }
 
@@ -445,8 +448,8 @@ func (e *EquipZhangBaSheMaoActiveSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectPlayerStep(0, 1, e.ShaFilter, res), NewSelectPlayerVerifyStep(),
-		NewSelectNumCardStep(e.AnyFilter, 2, 2, false, e.Player, res),
+	res.SetSteps(NewSelectPlayerStep(0, 1, e.ShaFilter, res, "请选择「杀」的目标"), NewSelectPlayerVerifyStep(),
+		NewSelectNumCardStep(e.AnyFilter, 2, 2, false, e.Player, res, "请选择两张手牌"),
 		NewTransCardStep(e.Card))
 	return res
 }
@@ -472,11 +475,11 @@ func NewEquipGuanShiFuSkill(player *Player) *EquipGuanShiFuSkill {
 
 func (e *EquipGuanShiFuSkill) CreateEffect(event *Event) IEffect {
 	// 自己的杀被响应后
-	if event.Type != EventRespCardAfter || event.Desc != e.Player || event.Card.Desc.Name != "杀" {
+	if event.Type != EventRespCardAfter || event.Desc != e.Player || event.Card.Desc.Name != "杀" || e.Player.IsBot {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectNumCardStep(e.AnyFilter, 2, 2, true, e.Player, res), NewGuanShiFuCheckStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否使用「贯石斧」", TextConfirm, TextCancel), NewSelectCancelStep(), NewSelectNumCardStep(e.AnyFilter, 2, 2, true, e.Player, res, "请选择两张牌"), NewGuanShiFuCheckStep())
 	return res
 }
 
@@ -540,7 +543,7 @@ func NewEquipQiLinGongSkill(player *Player) *EquipQiLinGongSkill {
 
 func (e *EquipQiLinGongSkill) CreateEffect(event *Event) IEffect {
 	// 用户使用「杀」对其他角色造成伤害后
-	if event.Type != EventShaHit || event.Src != e.Player || event.Card.Desc.Name != "杀" {
+	if event.Type != EventShaHit || event.Src != e.Player || event.Card.Desc.Name != "杀" || e.Player.IsBot {
 		return nil
 	}
 	equips := event.Desc.Equips
@@ -555,7 +558,8 @@ func (e *EquipQiLinGongSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectPlayerCardStep(1, res, NewAllCard(nil, cards, nil)), NewQiLinGongExecuteStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否使用「麒麟弓」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectPlayerCardStep(1, res, "请选择一张「马」", NewAllCard(nil, cards, nil)), NewQiLinGongExecuteStep())
 	return res
 }
 
@@ -573,11 +577,11 @@ func NewEquipCiXiongShuangGuJianSkill(player *Player) *EquipCiXiongShuangGuJianS
 func (e *EquipCiXiongShuangGuJianSkill) CreateEffect(event *Event) IEffect {
 	// 必须是武器持有玩家，使用杀指定异性角色为目标时
 	if event.Type != EventCardPoint || event.Src != e.Player || event.Card.Desc.Name != "杀" ||
-		event.Src.General.Gender == event.Desc.General.Gender {
+		event.Src.General.Gender == event.Desc.General.Gender || e.Player.IsBot {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewCiXiongShuangGuJianReqStep(),
+	res.SetSteps(NewButtonSelectStep(res, "是否使用「雌雄双股剑」", TextConfirm, TextCancel), NewCiXiongShuangGuJianReqStep(),
 		NewCiXiongShuangGuJianCheckSkill())
 	return res
 }
@@ -618,7 +622,7 @@ func (e *PlayerAskCardSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectNumCardStep(event.Filter, event.AskNum, event.AskNum, event.WithEquip, e.Player, res), NewPlayerAskCardStep())
+	res.SetSteps(NewSelectNumCardStep(event.Filter, event.AskNum, event.AskNum, event.WithEquip, e.Player, res, event.Info), NewPlayerAskCardStep())
 	return res
 }
 
@@ -635,11 +639,12 @@ func NewEquipQingLongYanYueDaoSkill(player *Player) *EquipQingLongYanYueDaoSkill
 
 func (e *EquipQingLongYanYueDaoSkill) CreateEffect(event *Event) IEffect {
 	// 自己的杀被响应后
-	if event.Type != EventRespCardAfter || event.Desc != e.Player || event.Card.Desc.Name != "杀" {
+	if event.Type != EventRespCardAfter || event.Desc != e.Player || event.Card.Desc.Name != "杀" || e.Player.IsBot {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectNumCardStep(e.ShaFilter, 1, 1, false, e.Player, res), NewQingLongYanYueDaoCheckStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否使用「青龙偃月刀」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectNumCardStep(e.ShaFilter, 1, 1, false, e.Player, res, "请选择一张「杀」"), NewQingLongYanYueDaoCheckStep())
 	return res
 }
 
@@ -660,7 +665,7 @@ func NewEquipHanBingJianSkill(player *Player) *EquipHanBingJianSkill {
 
 func (e *EquipHanBingJianSkill) CreateEffect(event *Event) IEffect {
 	// 必须是用户打的杀命中了
-	if event.Type != EventShaHit || event.Src != e.Player || event.Card.Desc.Name != "杀" {
+	if event.Type != EventShaHit || event.Src != e.Player || event.Card.Desc.Name != "杀" || e.Player.IsBot {
 		return nil
 	}
 	cards := event.Desc.GetCards()
@@ -671,7 +676,8 @@ func (e *EquipHanBingJianSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectPlayerCardStep(num, res, NewAllCard(cards, equips, delayKits)), NewHanBingJianCheckStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否使用「寒冰剑」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectPlayerCardStep(num, res, "请选择最多两张牌", NewAllCard(cards, equips, delayKits)), NewHanBingJianCheckStep())
 	return res
 }
 
@@ -690,11 +696,11 @@ func NewEquipBaGuaZhenSkill(player *Player) *EquipBaGuaZhenSkill {
 
 func (e *EquipBaGuaZhenSkill) CreateEffect(event *Event) IEffect {
 	// 必须使用需要用户打出「闪」的情况，必须能接受虚拟闪
-	if event.Type != EventRespCard || event.Desc != e.Player || !event.WrapFilter(e.Card) {
+	if event.Type != EventRespCard || event.Desc != e.Player || !event.WrapFilter(e.Card) || e.Player.IsBot {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(), NewJudgeCardJudgeStep(), NewJudgeCardEndStep(), NewBaGuaZhenCheckStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否使用「八卦阵」", TextConfirm, TextCancel), NewSelectCancelStep(), NewJudgeCardJudgeStep(), NewJudgeCardEndStep(), NewBaGuaZhenCheckStep())
 	return res
 }
 
@@ -783,7 +789,7 @@ func (g *GuoHeChaiQiaoSkill) CreateEffect(event *Event) IEffect {
 	equips := event.Descs[0].GetEquips()
 	delayKits := event.Descs[0].GetDelayKits()
 	res.SetSteps(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewCardCheckInvalidStep(),
-		NewSelectPlayerCardStep(1, res, NewAllCard(cards, equips, delayKits)), NewGuoHeChaiQiaoStep())
+		NewSelectPlayerCardStep(1, res, "请选择一张牌", NewAllCard(cards, equips, delayKits)), NewGuoHeChaiQiaoStep())
 	return res
 }
 
@@ -832,7 +838,7 @@ func (g *ShunShouQianYangSkill) CreateEffect(event *Event) IEffect {
 	equips := event.Descs[0].GetEquips()
 	delayKits := event.Descs[0].GetDelayKits()
 	res.SetSteps(NewLoopTriggerUseKitStep(event.Src), NewCheckRespKitStep(), NewCardCheckInvalidStep(),
-		NewSelectPlayerCardStep(1, res, NewAllCard(cards, equips, delayKits)), NewShunShouQianYangStep())
+		NewSelectPlayerCardStep(1, res, "请选择一张牌", NewAllCard(cards, equips, delayKits)), NewShunShouQianYangStep())
 	return res
 }
 
@@ -935,7 +941,7 @@ func (b *PlayerChooseCardSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewChooseNumCardStep(event.ChooseMin, event.ChooseMax, res, NewChooseCard(event.Cards)), NewPlayerChooseCardStep())
+	res.SetSteps(NewChooseNumCardStep(event.ChooseMin, event.ChooseMax, res, event.Info, NewChooseCard(event.Cards)), NewPlayerChooseCardStep())
 	return res
 }
 
@@ -988,7 +994,7 @@ func (g *NanManRuQinSkill) CheckUse(src *Player, card *Card, extra *StepExtra) b
 func (g *NanManRuQinSkill) CreateEffect(event *Event) IEffect {
 	event.HurtVal = 1
 	return NewEffect(NewAoePrepareStep(event.Src), NewLoopTriggerUseKitStep(event.Src),
-		NewCheckRespKitStep(), NewAoeRespStep(g.ShaFilter), NewAoeExecuteStep())
+		NewCheckRespKitStep(), NewAoeRespStep(g.ShaFilter, "杀"), NewAoeExecuteStep())
 }
 
 func (g *NanManRuQinSkill) ShaFilter(card *CardWrap) bool {
@@ -1013,7 +1019,7 @@ func (g *WanJianQiFaSkill) CheckUse(src *Player, card *Card, extra *StepExtra) b
 func (g *WanJianQiFaSkill) CreateEffect(event *Event) IEffect {
 	event.HurtVal = 1
 	return NewEffect(NewAoePrepareStep(event.Src), NewLoopTriggerUseKitStep(event.Src),
-		NewCheckRespKitStep(), NewAoeRespStep(g.ShanFilter), NewAoeExecuteStep())
+		NewCheckRespKitStep(), NewAoeRespStep(g.ShanFilter, "闪"), NewAoeExecuteStep())
 }
 
 func (g *WanJianQiFaSkill) ShanFilter(card *CardWrap) bool {
@@ -1163,25 +1169,25 @@ func (s *SysGameOverSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	// 判断游戏是否结束
-	zhongChens := MainGame.GetPlayers(func(player *Player) bool {
+	hasZhongChen := HasAny(MainGame.Players, func(player *Player) bool {
 		return !player.IsDie && player.Role == RoleZhongChen
 	})
-	fanZeis := MainGame.GetPlayers(func(player *Player) bool {
+	hasFanZei := HasAny(MainGame.Players, func(player *Player) bool {
 		return !player.IsDie && player.Role == RoleFanZei
 	})
-	neiJians := MainGame.GetPlayers(func(player *Player) bool {
+	hasNeiJian := HasAny(MainGame.Players, func(player *Player) bool {
 		return !player.IsDie && player.Role == RoleNeiJian
 	})
 	info := ""
 	// 主公死亡
 	if event.Src.Role == RoleZhuGong {
 		// 只有只剩余内奸时内奸胜利，其他都是反贼胜利
-		if len(zhongChens) == 0 && len(fanZeis) == 0 && len(neiJians) > 0 {
+		if !hasZhongChen && !hasFanZei && hasNeiJian {
 			info = "内奸胜利"
 		} else {
 			info = "反贼胜利"
 		}
-	} else if len(fanZeis) == 0 && len(neiJians) == 0 { // 内奸反贼全部死亡
+	} else if !hasFanZei && !hasNeiJian { // 内奸反贼全部死亡
 		info = "主公&忠臣胜利"
 	}
 	if len(info) == 0 {
@@ -1209,7 +1215,7 @@ func (j *JianXiongSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(), NewJianXiongStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「奸雄」", TextConfirm, TextCancel), NewSelectCancelStep(), NewJianXiongStep())
 	return res
 }
 
@@ -1231,7 +1237,7 @@ func (h *HuJiaSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(), NewHuJiaLoopStep(h.Player), NewHuJiaCheckStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「护驾」", TextConfirm, TextCancel), NewSelectCancelStep(), NewHuJiaLoopStep(h.Player), NewHuJiaCheckStep())
 	return res
 }
 
@@ -1259,8 +1265,8 @@ func (f *FanKuiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
-		NewSelectPlayerCardStep(1, res, NewAllCard(cards, equips, delayKits)), NewFanKuiStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「反馈」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectPlayerCardStep(1, res, "请选择一张牌", NewAllCard(cards, equips, delayKits)), NewFanKuiStep())
 	return res
 }
 
@@ -1276,8 +1282,8 @@ func (f *GuiCaiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
-		NewSelectNumCardStep(f.AnyFilter, 1, 1, false, f.Player, res), NewGuiCaiStep(f.Player))
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「鬼才」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectNumCardStep(f.AnyFilter, 1, 1, false, f.Player, res, "请选择一张手牌"), NewGuiCaiStep(f.Player))
 	return res
 }
 
@@ -1306,7 +1312,7 @@ func (g *GangLieSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(), NewJudgeCardJudgeStep(),
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「刚烈」", TextConfirm, TextCancel), NewSelectCancelStep(), NewJudgeCardJudgeStep(),
 		NewJudgeCardEndStep(), NewGangLieCheckStep(), NewGangLieExecuteStep())
 	return res
 }
@@ -1327,8 +1333,8 @@ func (t *TuXiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
-		NewSelectPlayerStep(1, 2, t.HasCardFilter, res), NewTuXiLoopStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「突袭」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectPlayerStep(1, 2, t.HasCardFilter, res, "请选择最多两名玩家"), NewTuXiLoopStep())
 	return res
 }
 
@@ -1352,7 +1358,7 @@ func (l *LuoYiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewLuoYiStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「裸衣」", TextConfirm, TextCancel), NewLuoYiStep())
 	return res
 }
 
@@ -1397,7 +1403,7 @@ func (t *TianDuSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewTianDuStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「天妒」", TextConfirm, TextCancel), NewTianDuStep())
 	return res
 }
 
@@ -1417,8 +1423,8 @@ func (y *YiJiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewYiJiPrepareStep(), NewYiJiCheckStep(),
-		NewSelectPlayerStep(1, 1, y.NotSelfFilter, res), NewYiJiExecuteStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「遗计」", TextConfirm, TextCancel), NewYiJiPrepareStep(), NewYiJiCheckStep(),
+		NewSelectPlayerStep(1, 1, y.NotSelfFilter, res, "请选择一名其他玩家"), NewYiJiExecuteStep())
 	return res
 }
 
@@ -1444,8 +1450,8 @@ func (q *QingGuoSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
-		NewSelectNumCardStep(q.BlackFilter, 1, 1, false, q.Player, res), NewQingGuoStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「倾国」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectNumCardStep(q.BlackFilter, 1, 1, false, q.Player, res, "请选择一张黑色的牌"), NewQingGuoStep())
 	return res
 }
 
@@ -1470,7 +1476,7 @@ func (s *LuoShenSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(), NewJudgeCardJudgeStep(),
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「洛神」", TextConfirm, TextCancel), NewSelectCancelStep(), NewJudgeCardJudgeStep(),
 		NewJudgeCardEndStep(), NewLuoShenStep())
 	return res
 }
@@ -1495,8 +1501,8 @@ func (r *RenDeSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectNumCardStep(r.AnyFilter, 1, len(r.Player.Cards), false, r.Player, res),
-		NewSelectPlayerStep(1, 1, r.NotSelfFilter, res), NewRenDeStep(r))
+	res.SetSteps(NewSelectNumCardStep(r.AnyFilter, 1, len(r.Player.Cards), false, r.Player, res, "请选择任意张手牌"),
+		NewSelectPlayerStep(1, 1, r.NotSelfFilter, res, "请选择一名其他玩家"), NewRenDeStep(r))
 	return res
 }
 
@@ -1525,7 +1531,7 @@ func (r *JiJiangSkill) CreateEffect(event *Event) IEffect {
 	// 响应「杀」时
 	if event.Type == EventRespCard && event.Desc == r.Player && event.WrapFilter(r.Card) && !r.Player.IsBot {
 		res := NewEffectWithUI()
-		res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
+		res.SetSteps(NewButtonSelectStep(res, "是否发动「激将」", TextConfirm, TextCancel), NewSelectCancelStep(),
 			NewJiJiangLoopStep(r.Player), NewJiJiangCheck1Step())
 		return res
 	} // 主动出杀
@@ -1534,7 +1540,7 @@ func (r *JiJiangSkill) CreateEffect(event *Event) IEffect {
 			return nil
 		}
 		res := NewEffectWithUI()
-		res.SetSteps(NewSelectPlayerStep(0, 1, r.ShaFilter, res), NewSelectPlayerVerifyStep(),
+		res.SetSteps(NewSelectPlayerStep(0, 1, r.ShaFilter, res, "请选择「杀」的目标"), NewSelectPlayerVerifyStep(),
 			NewJiJiangLoopStep(r.Player), NewJiJiangCheck2Step())
 		return res
 	}
@@ -1563,8 +1569,8 @@ func (r *WuShengSkill) CreateEffect(event *Event) IEffect {
 	// 响应「杀」时
 	if event.Type == EventRespCard && event.Desc == r.Player && event.WrapFilter(r.Card) && !r.Player.IsBot {
 		res := NewEffectWithUI()
-		res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
-			NewSelectNumCardStep(r.RedFilter, 1, 1, true, r.Player, res), NewWuShengCheckStep())
+		res.SetSteps(NewButtonSelectStep(res, "是否发动「武圣」", TextConfirm, TextCancel), NewSelectCancelStep(),
+			NewSelectNumCardStep(r.RedFilter, 1, 1, true, r.Player, res, "请选择一张红色牌"), NewWuShengCheckStep())
 		return res
 	} // 主动出杀
 	if event.Type == EventUseSkill && event.Src == r.Player && !r.Player.IsBot {
@@ -1572,8 +1578,8 @@ func (r *WuShengSkill) CreateEffect(event *Event) IEffect {
 			return nil
 		}
 		res := NewEffectWithUI()
-		res.SetSteps(NewSelectPlayerStep(0, 1, r.ShaFilter, res), NewSelectPlayerVerifyStep(),
-			NewSelectNumCardStep(r.RedFilter, 1, 1, true, r.Player, res),
+		res.SetSteps(NewSelectPlayerStep(0, 1, r.ShaFilter, res, "请选择「杀」的目标"), NewSelectPlayerVerifyStep(),
+			NewSelectNumCardStep(r.RedFilter, 1, 1, true, r.Player, res, "请选择一张红色牌"),
 			NewTransCardStep(&Card{Name: "杀", Point: PointNone, Suit: SuitNone, Type: CardBasic, Skill: NewShaSkill()}))
 		return res
 	}
@@ -1627,7 +1633,7 @@ func (g *GuanXingSkill) CreateEffect(event *Event) IEffect {
 	res := NewEffectWithUI()
 	num := Min(5, len(MainGame.GetPlayers(g.LiveFilter)))
 	cards := MainGame.DrawCard(num)
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「观星」", TextConfirm, TextCancel), NewSelectCancelStep(),
 		NewGuanXingStep(res, NewGuanXing(cards)))
 	return res
 }
@@ -1687,8 +1693,8 @@ func (l *LongDanSkill) CreateEffect(event *Event) IEffect {
 			return nil
 		}
 		res := NewEffectWithUI()
-		res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
-			NewSelectNumCardStep(l.NeedFilter(needCard), 1, 1, false, l.Player, res),
+		res.SetSteps(NewButtonSelectStep(res, "是否发动「龙胆」", TextConfirm, TextCancel), NewSelectCancelStep(),
+			NewSelectNumCardStep(l.NeedFilter(needCard), 1, 1, false, l.Player, res, fmt.Sprintf("请选择一张「%s」", needCard)),
 			NewLongDanCheckStep(cardName))
 		return res
 	} // 主动出杀
@@ -1697,8 +1703,8 @@ func (l *LongDanSkill) CreateEffect(event *Event) IEffect {
 			return nil
 		}
 		res := NewEffectWithUI()
-		res.SetSteps(NewSelectPlayerStep(0, 1, l.ShaFilter, res), NewSelectPlayerVerifyStep(),
-			NewSelectNumCardStep(l.NeedFilter("闪"), 1, 1, false, l.Player, res),
+		res.SetSteps(NewSelectPlayerStep(0, 1, l.ShaFilter, res, "请选择「杀」的目标"), NewSelectPlayerVerifyStep(),
+			NewSelectNumCardStep(l.NeedFilter("闪"), 1, 1, false, l.Player, res, "请选择一张「闪」"),
 			NewTransCardStep(&Card{Name: "杀", Point: PointNone, Suit: SuitNone, Type: CardBasic, Skill: NewShaSkill()}))
 		return res
 	}
@@ -1752,7 +1758,7 @@ func (t *TieQiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(), NewJudgeCardJudgeStep(),
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「铁骑」", TextConfirm, TextCancel), NewSelectCancelStep(), NewJudgeCardJudgeStep(),
 		NewJudgeCardEndStep(), NewTieQiStep())
 	return res
 }
@@ -1769,7 +1775,7 @@ type JiZhiSkill struct {
 }
 
 func (j *JiZhiSkill) CreateEffect(event *Event) IEffect {
-	if event.Type != EventUseCard || event.Src != j.Player || j.Player.IsBot {
+	if event.Type != EventUseCard || event.Src != j.Player {
 		return nil
 	}
 	card := event.Card.Desc
@@ -1820,7 +1826,7 @@ func (z *ZhiHengSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectNumCardStep(z.AnyFilter, 1, 999, true, z.Player, res), NewZhiHengStep(z))
+	res.SetSteps(NewSelectNumCardStep(z.AnyFilter, 1, 999, true, z.Player, res, "请选择任意张牌"), NewZhiHengStep(z))
 	return res
 }
 
@@ -1866,9 +1872,9 @@ func (x *QiXiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectNumCardStep(x.BlackFilter, 1, 1, true, x.Player, res), // 确定牌
-		NewSelectPlayerStep(1, 1, x.GuoHeChaiQiaoFilter, res), // 确定目标
-		NewTransCardStep(x.Card))                              // 确定要转换的目标牌
+	res.SetSteps(NewSelectNumCardStep(x.BlackFilter, 1, 1, true, x.Player, res, "请选择一张黑色牌"), // 确定牌
+		NewSelectPlayerStep(1, 1, x.GuoHeChaiQiaoFilter, res, "请选择「过河拆桥」的目标"), // 确定目标
+		NewTransCardStep(x.Card)) // 确定要转换的目标牌
 	return res
 }
 
@@ -1904,7 +1910,7 @@ func (k *KeJiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewKeJiStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「克己」", TextConfirm, TextCancel), NewKeJiStep())
 	return res
 }
 
@@ -1966,7 +1972,7 @@ func (z *FanJianSkill) CreateEffect(event *Event) IEffect {
 	}
 	z.Used = true
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectPlayerStep(1, 1, z.NotSelfFilter, res), NewFanJianReqStep(), NewFanJianCheckStep())
+	res.SetSteps(NewSelectPlayerStep(1, 1, z.NotSelfFilter, res, "请选择一名其他角色"), NewFanJianReqStep(), NewFanJianCheckStep())
 	return res
 }
 
@@ -1991,8 +1997,8 @@ func (x *GuoSeSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectNumCardStep(x.DiamondFilter, 1, 1, true, x.Player, res),
-		NewSelectPlayerStep(1, 1, x.LeBuSiShuFilter, res), NewTransCardStep(x.Card))
+	res.SetSteps(NewSelectNumCardStep(x.DiamondFilter, 1, 1, true, x.Player, res, "请选择一张「♦」牌"),
+		NewSelectPlayerStep(1, 1, x.LeBuSiShuFilter, res, "请选择「乐不思蜀」的目标"), NewTransCardStep(x.Card))
 	return res
 }
 
@@ -2024,9 +2030,9 @@ func (l *LiuLiSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel),
-		NewSelectNumCardStep(l.AnyFilter, 1, 1, true, l.Player, res),
-		NewSelectPlayerStep(0, 1, l.Filter(event.Src), res), NewLiuLiStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「流离」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectNumCardStep(l.AnyFilter, 1, 1, true, l.Player, res, "请选择一张牌"),
+		NewSelectPlayerStep(0, 1, l.Filter(event.Src), res, "请选择攻击范围内非伤害来源的一名角色"), NewLiuLiStep())
 	return res
 }
 
@@ -2123,8 +2129,8 @@ func (y *JieYinSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectPlayerStep(0, 1, y.Filter, res), NewSelectPlayerVerifyStep(),
-		NewSelectNumCardStep(y.AnyFilter, 2, 2, false, y.Player, res), NewJieYinStep(y))
+	res.SetSteps(NewSelectPlayerStep(0, 1, y.Filter, res, "请选择一名受伤的男性角色"), NewSelectPlayerVerifyStep(),
+		NewSelectNumCardStep(y.AnyFilter, 2, 2, false, y.Player, res, "请选择两张手牌"), NewJieYinStep(y))
 	return res
 }
 
@@ -2156,8 +2162,8 @@ func (y *QingNangSkill) CreateEffect(event *Event) IEffect {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectPlayerStep(0, 1, y.HurtFilter, res), NewSelectPlayerVerifyStep(),
-		NewSelectNumCardStep(y.AnyFilter, 1, 1, false, y.Player, res), NewQingNangStep(y))
+	res.SetSteps(NewSelectPlayerStep(0, 1, y.HurtFilter, res, "请选择一名受伤的角色"), NewSelectPlayerVerifyStep(),
+		NewSelectNumCardStep(y.AnyFilter, 1, 1, false, y.Player, res, "请选择一张手牌"), NewQingNangStep(y))
 	return res
 }
 
@@ -2182,12 +2188,12 @@ type JiJiuSkill struct {
 }
 
 func (j *JiJiuSkill) CreateEffect(event *Event) IEffect {
-	if event.Type != EventAskCard || event.Desc != j.Player || event.AskNum != 1 || !event.Filter(j.Card) {
+	if event.Type != EventAskCard || event.Desc != j.Player || event.AskNum != 1 || !event.Filter(j.Card) || j.Player.IsBot {
 		return nil
 	}
 	res := NewEffectWithUI()
-	res.SetSteps(NewButtonSelectStep(res, TextConfirm, TextCancel), NewSelectCancelStep(),
-		NewSelectNumCardStep(j.RedFilter, 1, 1, true, j.Player, res), NewJiJiuStep())
+	res.SetSteps(NewButtonSelectStep(res, "是否发动「急救」", TextConfirm, TextCancel), NewSelectCancelStep(),
+		NewSelectNumCardStep(j.RedFilter, 1, 1, true, j.Player, res, "请选择一张红色的牌"), NewJiJiuStep())
 	return res
 }
 
@@ -2217,8 +2223,8 @@ func (y *LiJianSkill) CreateEffect(event *Event) IEffect {
 	}
 	y.Used = true
 	res := NewEffectWithUI()
-	res.SetSteps(NewSelectPlayerStep(2, 2, y.ManFilter, res),
-		NewSelectNumCardStep(y.AnyFilter, 1, 1, false, y.Player, res), NewLiJianStep())
+	res.SetSteps(NewSelectPlayerStep(2, 2, y.ManFilter, res, "请选择两名男性角色"),
+		NewSelectNumCardStep(y.AnyFilter, 1, 1, false, y.Player, res, "请选择一张手牌"), NewLiJianStep())
 	return res
 }
 

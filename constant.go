@@ -28,7 +28,7 @@ var (
 var (
 	Font18 = NewFont(18)
 	Font16 = NewFont(16)
-	Font36 = NewFont(36)
+	Font64 = NewFont(64)
 )
 
 type Anchor complex64 // 复数类型，非常适合当做向量，简单起见这里不会用到向量 这里把实数当x锚点，虚数当y锚点

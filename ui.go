@@ -50,8 +50,8 @@ func NewBaseRect(w float32, h float32) *BaseRect {
 //==================Button文本基础按钮===================
 
 type Button struct {
-	*BaseRect
-	Show string
+	*BaseRect // 高  42
+	Show      string
 }
 
 func (b *Button) Draw(screen *ebiten.Image) {
@@ -76,13 +76,13 @@ func NewButtons(shows ...string) []*Button {
 	for _, show := range shows {
 		res = append(res, NewButton(show))
 	}
-	last := float32(WinWidth - 240 - 240)
+	last := float32(WinWidth - 240*2)
 	for _, button := range res {
 		last -= button.W
 	}
 	offset := last / float32(len(res)+1) // 计算偏移 若是按钮太多，offset会变成负数，按钮会叠在一起
 	x := 240 + offset
-	y := 280 + 280 - res[0].H - 20
+	y := float32(280*2 - 42 - 20)
 	for _, button := range res {
 		button.X, button.Y = x, y
 		x += offset + button.W
@@ -94,15 +94,15 @@ func NewButtons(shows ...string) []*Button {
 
 type Text struct {
 	X, Y float32
-	Show string
+	Show string // 高 20
 }
 
 func NewText(format string, args ...any) *Text {
-	return &Text{Show: fmt.Sprintf(format, args...)}
+	return &Text{Show: fmt.Sprintf(format, args...), X: WinWidth / 2, Y: 280*2 - 42 - 20*2}
 }
 
 func (t *Text) Draw(screen *ebiten.Image) {
-	DrawText(screen, t.Show, t.X, t.Y, AnchorMidCenter, Font16, ClrFFFFFF)
+	DrawText(screen, t.Show, t.X, t.Y, AnchorBtmCenter, Font16, ClrFFFFFF)
 }
 
 //======================CardUI卡牌用于绘制的形式========================
@@ -356,7 +356,7 @@ func NewGameOver(info string) *GameOver {
 }
 
 func (g *GameOver) Draw(screen *ebiten.Image) {
-	DrawText(screen, g.Info, WinWidth/2, WinHeight/2, AnchorMidCenter, Font36, ClrFFFFFF)
+	DrawText(screen, g.Info, WinWidth/2, WinHeight/2, AnchorMidCenter, Font64, ClrFFFFFF)
 }
 
 //=================SkillUI==================

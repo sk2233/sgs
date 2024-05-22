@@ -34,6 +34,77 @@ func RandSlice(arr any) {
 	})
 }
 
+// 获取对于 bot 最珍贵的牌，一般这时候该进入回合外了
+func GetBotCardVal(card *Card) int {
+	switch card.Name {
+	// 保命牌
+	case "桃":
+		return 10
+	case "闪", "无懈可击":
+		return 9
+	case "杀":
+		return 8
+		// 高性价比牌
+	case "乐不思蜀":
+		return 7
+		// 无损的锦囊
+	case "无中生有", "南蛮入侵", "万箭齐发":
+		return 5
+		// 有风险的锦囊
+	case "决斗", "五谷丰登":
+		return 4
+		// bot不主动使用的锦囊
+	case "过河拆桥", "顺手牵羊", "借刀杀人", "闪电":
+		return 0
+	default:
+		if card.Type == CardEquip && card.EquipType == EquipDefense { // 防御马
+			return 6
+		} else {
+			// 默认牌价值
+			return 3
+		}
+	}
+}
+
+func GetEnemy(role Role) []*Player {
+	var players []*Player
+	var orders map[Role]int
+	switch role {
+	case RoleZhuGong, RoleZhongChen: // 主公，忠臣目标一致
+		players = MainGame.GetPlayers(func(player *Player) bool {
+			return !player.IsDie && (player.Role == RoleFanZei || player.Role == RoleNeiJian)
+		})
+		orders = map[Role]int{
+			RoleFanZei:  1, // 先打反
+			RoleNeiJian: 2,
+		}
+	case RoleFanZei:
+		players = MainGame.GetPlayers(func(player *Player) bool {
+			return !player.IsDie && (player.Role != RoleFanZei)
+		})
+		orders = map[Role]int{
+			RoleZhuGong:   1, // 先打主公，实在打不到打忠臣
+			RoleZhongChen: 2,
+			RoleNeiJian:   3,
+		}
+	case RoleNeiJian:
+		players = MainGame.GetPlayers(func(player *Player) bool {
+			return !player.IsDie && (player.Role != RoleNeiJian)
+		})
+		orders = map[Role]int{
+			RoleFanZei:    1, // 先打反贼，实在打不到打忠臣
+			RoleZhongChen: 2,
+			RoleZhuGong:   3,
+		}
+	default:
+		panic(fmt.Sprintf("invalid role %v", role))
+	}
+	sort.Slice(players, func(i, j int) bool {
+		return orders[players[i].Role] < orders[players[j].Role]
+	})
+	return players
+}
+
 //=====================绘图========================
 
 // 只支持 6 位或 8 位的颜色转换
@@ -239,6 +310,15 @@ func SubSlice[T comparable](all, sub []T) []T {
 		}
 	}
 	return res
+}
+
+func HasAny[T any](all []T, filter func(T) bool) bool {
+	for _, item := range all {
+		if filter(item) {
+			return true
+		}
+	}
+	return false
 }
 
 func ReverseSlice[T any](data []T) {
